@@ -1,0 +1,29 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-title">AI 正在分析</view>
+    <view class="hero-subtitle">系统会识别训练中的姿态、节奏、稳定性和可能需要教练关注的风险点。</view>
+  </view>
+
+  <view class="card">
+    <view class="row">
+      <view>
+        <view class="card-title">{{statusText}}</view>
+        <view class="muted">{{task.progressText || '正在准备分析任务'}}</view>
+      </view>
+      <view class="tag">{{task.progress || 0}}%</view>
+    </view>
+    <view class="progress-track" style="margin-top: 28rpx;">
+      <view class="progress-bar" style="width: {{task.progress || 0}}%;"></view>
+    </view>
+    <view class="muted" style="margin-top: 22rpx;">可返回首页，任务状态会自动保留。体验版原型使用模拟分析流程。</view>
+  </view>
+
+  <view class="card" wx:if="{{task.status === 'failed'}}">
+    <view class="card-title">分析失败</view>
+    <view class="muted">请重新发起分析，如连续失败建议联系教练或客服。</view>
+    <view class="btn btn-primary" style="margin-top: 24rpx;" bindtap="retry">重新分析</view>
+  </view>
+
+  <view class="btn btn-ghost" style="margin-top: 28rpx;" bindtap="backHome">返回首页</view>
+</view>
+

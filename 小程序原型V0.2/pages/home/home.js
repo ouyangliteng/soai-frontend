@@ -1,0 +1,74 @@
+const dataService = require("../../utils/data-service");
+
+Page({
+  data: {
+    profile: {},
+    completion: 0,
+    latestReport: null,
+    activeTask: null,
+    trendItems: [],
+    trendSummary: ""
+  },
+
+  async onShow() {
+    try {
+      const profile = (await dataService.getProfile()) || {};
+      const trend = await dataService.getTrend(5, profile.id);
+      const activeTask = dataService.getActiveTask();
+      const latestReport = await dataService.getLatestReport();
+
+      this.setData({
+        profile,
+        completion: dataService.getProfileCompletion(profile),
+        latestReport,
+        activeTask: activeTask ? this.formatTask(activeTask) : null,
+        trendItems: trend.items,
+        trendSummary: trend.summary
+      });
+    } catch (error) {
+      wx.showToast({ title: error.message || "首页数据加载失败", icon: "none" });
+    }
+  },
+
+  formatTask(task) {
+    const statusMap = {
+      queued: "排队中",
+      uploading: "上传中",
+      analyzing: "分析中",
+      generating_report: "生成中",
+      failed: "失败"
+    };
+    return {
+      ...task,
+      statusText: statusMap[task.status] || "进行中"
+    };
+  },
+
+  goProfile() {
+    wx.switchTab({ url: "/pages/profile/profile" });
+  },
+
+  goUpload() {
+    wx.navigateTo({ url: "/pages/upload/upload" });
+  },
+
+  goAnalysis() {
+    wx.navigateTo({ url: "/pages/analysis/analysis" });
+  },
+
+  goReport() {
+    const latest = this.data.latestReport;
+    if (!latest) return;
+    wx.navigateTo({ url: `/pages/report/report?id=${latest.id}` });
+  },
+
+  goFeedback() {
+    const latest = this.data.latestReport;
+    const query = latest ? `?reportId=${latest.id}` : "";
+    wx.navigateTo({ url: `/pages/feedback/feedback${query}` });
+  },
+
+  goTrends() {
+    wx.switchTab({ url: "/pages/trends/trends" });
+  }
+});

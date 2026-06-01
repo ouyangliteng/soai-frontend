@@ -1,0 +1,107 @@
+<view class="page" wx:if="{{report}}">
+  <view class="hero">
+    <view class="hero-title">{{report.summary.overallScore}} 分</view>
+    <view class="hero-subtitle">{{report.summary.oneLineConclusion}}</view>
+  </view>
+
+  <view class="card">
+    <view class="row">
+      <view>
+        <view class="card-title">{{report.studentSnapshot.name}}</view>
+        <view class="muted">{{report.studentSnapshot.currentLevel}} · 骑龄 {{report.studentSnapshot.ridingYears}} 年</view>
+      </view>
+      <view class="tag">{{report.trainingDate}}</view>
+    </view>
+    <view class="divider"></view>
+    <view class="row">
+      <view class="small">教练：{{report.studentSnapshot.coachName}}</view>
+      <view class="small">{{report.studentSnapshot.clubName}}</view>
+    </view>
+  </view>
+
+  <view class="section-title">评分维度</view>
+  <view class="card">
+    <view class="score-row">
+      <view>姿态控制</view>
+      <view>{{report.scores.postureControl}}</view>
+    </view>
+    <view class="score-row">
+      <view>节奏控制</view>
+      <view>{{report.scores.rhythmControl}}</view>
+    </view>
+    <view class="score-row">
+      <view>骑坐稳定性</view>
+      <view>{{report.scores.stability}}</view>
+    </view>
+    <view class="score-row">
+      <view>扶助准确性</view>
+      <view>{{report.scores.aidAccuracy}}</view>
+    </view>
+    <view class="score-row">
+      <view>风险意识</view>
+      <view>{{report.scores.safetyAwareness}}</view>
+    </view>
+  </view>
+
+  <view class="section-title" wx:if="{{studentExplanation}}">AI 解读</view>
+  <view class="card" wx:if="{{studentExplanation}}">
+    <view class="card-title">{{studentExplanation.title}}</view>
+    <view class="muted" style="margin-top: 16rpx;">{{studentExplanation.explanation}}</view>
+    <view class="divider"></view>
+    <view class="muted">{{studentExplanation.nextAction}}</view>
+  </view>
+
+  <view class="section-title">问题点</view>
+  <view class="card" wx:for="{{report.problemPoints}}" wx:key="title">
+    <view class="row">
+      <view class="card-title">{{item.title}}</view>
+      <view class="tag tag-warning">{{item.severity}}</view>
+    </view>
+    <view class="muted" style="margin-top: 14rpx;">{{item.detail}}</view>
+    <view class="divider"></view>
+    <view class="muted">建议：{{item.suggestion}}</view>
+  </view>
+
+  <view class="section-title">风险点</view>
+  <view class="card" wx:for="{{report.riskPoints}}" wx:key="title">
+    <view class="row">
+      <view class="card-title">{{item.title}}</view>
+      <view class="tag tag-warning">{{item.riskLevel}}</view>
+    </view>
+    <view class="muted" style="margin-top: 14rpx;">{{item.detail}}</view>
+    <view class="small" style="margin-top: 14rpx;">需结合教练现场判断。</view>
+  </view>
+
+  <view class="section-title">本次进步</view>
+  <view class="card">
+    <view class="list-item" wx:for="{{report.improvements}}" wx:key="*this">{{item}}</view>
+  </view>
+
+  <view class="section-title">下次训练重点</view>
+  <view class="card">
+    <view class="list-item" wx:for="{{report.nextTrainingFocus}}" wx:key="*this">{{index + 1}}. {{item}}</view>
+  </view>
+
+  <view class="section-title">教练复核</view>
+  <view class="card">
+    <view class="row">
+      <view class="card-title">{{report.coachReviewStatus === 'reviewed' ? '已复核' : '待复核'}}</view>
+      <view class="tag">{{report.studentSnapshot.coachName}}</view>
+    </view>
+    <view class="muted" style="margin-top: 18rpx;" wx:if="{{report.coachReview}}">{{report.coachReview}}</view>
+    <view class="btn btn-secondary" style="margin-top: 22rpx;" bindtap="generateCoachDraft">{{draftLoading ? '生成中...' : '生成 AI 复核草稿'}}</view>
+    <view class="divider"></view>
+    <view class="field-label">教练确认的下次训练重点</view>
+    <textarea class="textarea" value="{{coachFocusText}}" bindinput="onCoachFocus" placeholder="例如：轻快步节奏、小腿稳定、转弯前视线"></textarea>
+    <view class="field-label" style="margin-top: 22rpx;">教练复核意见</view>
+    <textarea class="textarea" value="{{coachComment}}" bindinput="onCoachComment" placeholder="输入教练复核意见"></textarea>
+    <view class="btn btn-primary" style="margin-top: 18rpx;" bindtap="saveReview">提交复核意见</view>
+  </view>
+
+  <view class="section-title">内测反馈</view>
+  <view class="card">
+    <view class="card-title">这份报告对训练复盘有帮助吗？</view>
+    <view class="muted" style="margin-top: 14rpx;">学员可以反馈是否看得懂、下次是否知道怎么练；教练可以反馈 AI 判断是否有参考价值。</view>
+    <view class="btn btn-secondary" style="margin-top: 24rpx;" bindtap="goFeedback">填写反馈</view>
+  </view>
+</view>

@@ -1,0 +1,29 @@
+.mini-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 18rpx;
+  height: 140rpx;
+  margin-top: 26rpx;
+  padding: 18rpx;
+  border-radius: 14rpx;
+  background: #f6f8fc;
+}
+
+.chart-bar {
+  position: relative;
+  flex: 1;
+  min-height: 48rpx;
+  border-radius: 10rpx 10rpx 4rpx 4rpx;
+  background: linear-gradient(180deg, #28c2ff 0%, #0f67ff 100%);
+}
+
+.chart-bar text {
+  position: absolute;
+  top: -34rpx;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: #344054;
+  font-size: 21rpx;
+}
+

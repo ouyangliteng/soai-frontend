@@ -1,0 +1,7 @@
+.DS_Store
+*.crdownload
+node_modules/
+dist/
+build/
+.env
+.env.local

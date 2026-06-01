@@ -1,0 +1,46 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/upload/upload",
+    "pages/privacy/privacy",
+    "pages/analysis/analysis",
+    "pages/report/report",
+    "pages/feedback/feedback",
+    "pages/coach/coach",
+    "pages/coach-student/coach-student",
+    "pages/trends/trends",
+    "pages/profile/profile"
+  ],
+  "window": {
+    "navigationBarTitleText": "SOAI 马术训练",
+    "navigationBarBackgroundColor": "#08111f",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f5f7fb"
+  },
+  "tabBar": {
+    "color": "#738096",
+    "selectedColor": "#0f67ff",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "训练"
+      },
+      {
+        "pagePath": "pages/trends/trends",
+        "text": "趋势"
+      },
+      {
+        "pagePath": "pages/coach/coach",
+        "text": "教练"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "资料"
+      }
+    ]
+  },
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents"
+}

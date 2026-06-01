@@ -1,0 +1,55 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-title">{{profile.name}}</view>
+    <view class="hero-subtitle">{{profile.currentLevel}} · 骑龄 {{profile.ridingYears}} 年 · {{profile.clubName}}</view>
+  </view>
+
+  <view class="card">
+    <view class="row">
+      <view>
+        <view class="card-title">最近训练</view>
+        <view class="muted">{{latestReport.trainingDate}} · {{latestReport.summary.oneLineConclusion}}</view>
+      </view>
+      <view class="tag">{{latestReport.summary.overallScore}} 分</view>
+    </view>
+    <view class="btn btn-primary" style="margin-top: 24rpx;" data-id="{{latestReport.id}}" bindtap="openReport">查看报告</view>
+  </view>
+
+  <view class="section-title">最近 5 次趋势</view>
+  <view class="card">
+    <view class="student-chart">
+      <view class="student-column" wx:for="{{trend.items}}" wx:key="id">
+        <view class="student-bar" style="height: {{item.summary.overallScore * 1.5}}rpx;"></view>
+        <view class="student-score">{{item.summary.overallScore}}</view>
+      </view>
+    </view>
+    <view class="muted" style="margin-top: 22rpx;">{{trend.summary}}</view>
+  </view>
+
+  <view class="section-title">反复问题</view>
+  <view class="card">
+    <view class="list-item" wx:for="{{repeatedProblems}}" wx:key="title">
+      {{item.title}} · 出现 {{item.count}} 次
+    </view>
+  </view>
+
+  <view class="section-title">风险关注</view>
+  <view class="card">
+    <view class="list-item" wx:for="{{repeatedRisks}}" wx:key="title">
+      {{item.title}} · 出现 {{item.count}} 次
+    </view>
+  </view>
+
+  <view class="section-title">训练记录</view>
+  <view class="card" wx:for="{{reports}}" wx:key="id">
+    <view class="row">
+      <view>
+        <view class="card-title">{{item.trainingDate}}</view>
+        <view class="muted">{{item.summary.oneLineConclusion}}</view>
+      </view>
+      <view class="tag">{{item.summary.overallScore}}</view>
+    </view>
+    <view class="btn btn-secondary" style="margin-top: 20rpx;" data-id="{{item.id}}" bindtap="openReport">查看</view>
+  </view>
+</view>
+

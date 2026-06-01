@@ -1,0 +1,67 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-title">上传训练视频</view>
+    <view class="hero-subtitle">建议上传 15 秒到 3 分钟的关键训练片段，画面尽量包含骑手姿态和马匹行进方向。</view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">上传前检查</view>
+    <view class="list-item">
+      <view class="row">
+        <view class="muted">学员资料</view>
+        <view class="tag {{profileReady ? '' : 'tag-warning'}}">{{profileReady ? '已完成' : '需补全'}}</view>
+      </view>
+    </view>
+    <view class="list-item">
+      <view class="row">
+        <view class="muted">视频格式</view>
+        <view class="small">mp4 / mov</view>
+      </view>
+    </view>
+    <view class="list-item">
+      <view class="row">
+        <view class="muted">建议大小</view>
+        <view class="small">不超过 300 MB</view>
+      </view>
+    </view>
+    <view class="list-item">
+      <view class="row">
+        <view class="muted">建议时长</view>
+        <view class="small">15 秒到 180 秒</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{video}}">
+    <view class="card-title">{{video.name}}</view>
+    <view class="muted">大小 {{video.sizeMb}} MB · 时长 {{video.durationSec}} 秒</view>
+    <view class="progress-track" style="margin-top: 24rpx;" wx:if="{{uploading}}">
+      <view class="progress-bar" style="width: {{progress}}%;"></view>
+    </view>
+    <view class="small" style="margin-top: 14rpx;" wx:if="{{uploading}}">上传中 {{progress}}%</view>
+  </view>
+
+  <view class="section-title">视频用途确认</view>
+  <view class="card">
+    <view class="consent-row" bindtap="toggleAnalysisConsent">
+      <view class="checkbox {{analysisConsent ? 'checked' : ''}}">{{analysisConsent ? '✓' : ''}}</view>
+      <view>
+        <view class="card-title">同意用于本次 AI 训练分析</view>
+        <view class="muted">视频仅用于生成训练报告、历史趋势和教练复核，不会自动公开。</view>
+      </view>
+    </view>
+    <view class="divider"></view>
+    <view class="consent-row" bindtap="toggleCaseConsent">
+      <view class="checkbox {{caseConsent ? 'checked' : ''}}">{{caseConsent ? '✓' : ''}}</view>
+      <view>
+        <view class="card-title">允许作为匿名案例素材</view>
+        <view class="muted">可选。公开发布前仍需运营二次确认，并会隐藏身份信息。</view>
+      </view>
+    </view>
+    <view class="btn btn-ghost" style="margin-top: 24rpx;" bindtap="goPrivacy">查看视频使用说明</view>
+  </view>
+
+  <view class="btn btn-secondary" style="margin-top: 28rpx;" bindtap="chooseVideo">选择视频</view>
+  <view class="btn btn-primary" style="margin-top: 18rpx;" bindtap="startUpload">开始分析</view>
+  <view class="btn btn-ghost" style="margin-top: 18rpx;" bindtap="goProfile" wx:if="{{!profileReady}}">先补全资料</view>
+</view>

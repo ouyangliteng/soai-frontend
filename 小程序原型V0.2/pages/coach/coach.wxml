@@ -1,0 +1,61 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-title">教练工作台</view>
+    <view class="hero-subtitle">优先处理待复核和风险报告，跟踪学员最近训练变化。</view>
+  </view>
+
+  <view class="stats-grid">
+    <view class="stat-card">
+      <view class="stat-value">{{stats.pendingReviewCount}}</view>
+      <view class="stat-label">待复核</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-value">{{stats.highRiskCount}}</view>
+      <view class="stat-label">风险报告</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-value">{{stats.reviewedTodayCount}}</view>
+      <view class="stat-label">今日已复核</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-value">{{stats.activeStudentCount}}</view>
+      <view class="stat-label">活跃学员</view>
+    </view>
+  </view>
+
+  <view class="section-title">待复核报告</view>
+  <view class="card" wx:for="{{pendingReports}}" wx:key="id">
+    <view class="row">
+      <view>
+        <view class="card-title">{{item.studentName}}</view>
+        <view class="muted">{{item.currentLevel}} · {{item.trainingDate}}</view>
+      </view>
+      <view class="tag {{item.riskLevel === 'low' ? '' : 'tag-warning'}}">{{item.riskLevel}}</view>
+    </view>
+    <view class="divider"></view>
+    <view class="row">
+      <view class="muted">{{item.conclusion}}</view>
+      <view class="score-pill">{{item.score}}</view>
+    </view>
+    <view class="btn btn-primary" style="margin-top: 24rpx;" data-id="{{item.id}}" bindtap="openReport">复核报告</view>
+  </view>
+
+  <view class="card" wx:if="{{pendingReports.length === 0}}">
+    <view class="card-title">暂无待复核报告</view>
+    <view class="muted">新的训练报告生成后，会在这里按风险优先级展示。</view>
+  </view>
+
+  <view class="section-title">学员概览</view>
+  <view class="card" wx:for="{{students}}" wx:key="id">
+    <view class="row">
+      <view>
+        <view class="card-title">{{item.name}}</view>
+        <view class="muted">{{item.currentLevel}} · 最近 {{item.latestTrainingDate}}</view>
+      </view>
+      <view class="tag">{{item.latestScore}} 分</view>
+    </view>
+    <view class="muted" style="margin-top: 18rpx;">{{item.trendText}}</view>
+    <view class="btn btn-secondary" style="margin-top: 24rpx;" data-id="{{item.id}}" bindtap="openStudent">查看学员详情</view>
+  </view>
+</view>
+

@@ -1,0 +1,25 @@
+.score-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid #edf0f5;
+  color: #344054;
+  font-size: 27rpx;
+}
+
+.score-row:last-child {
+  border-bottom: 0;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 150rpx;
+  box-sizing: border-box;
+  margin-top: 22rpx;
+  padding: 20rpx;
+  border: 1rpx solid #d9e0ea;
+  border-radius: 14rpx;
+  background: #ffffff;
+  font-size: 27rpx;
+}
+

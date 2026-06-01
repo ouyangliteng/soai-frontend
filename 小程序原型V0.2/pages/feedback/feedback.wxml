@@ -1,0 +1,78 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-title">内测反馈</view>
+    <view class="hero-subtitle">请用 1 分钟告诉我们：报告是否专业、是否看得懂、是否能帮助下次训练。</view>
+  </view>
+
+  <view class="section-title">反馈身份</view>
+  <view class="card">
+    <view class="segmented">
+      <view class="segment {{form.role === 'student' ? 'active' : ''}}" data-role="student" bindtap="selectRole">学员</view>
+      <view class="segment {{form.role === 'coach' ? 'active' : ''}}" data-role="coach" bindtap="selectRole">教练</view>
+    </view>
+    <view class="muted" style="margin-top: 18rpx;">{{form.role === 'coach' ? '重点反馈 AI 判断是否准确、建议是否可用于教学。' : '重点反馈报告是否看得懂、下次训练重点是否清楚。'}}</view>
+  </view>
+
+  <view class="section-title">评分</view>
+  <view class="card">
+    <view class="rating-row">
+      <view>
+        <view class="card-title">总体评价</view>
+        <view class="muted">这份报告整体是否有帮助</view>
+      </view>
+      <view class="rating">
+        <view wx:for="{{ratings}}" wx:key="*this" data-field="rating" data-value="{{item}}" bindtap="selectRating" class="rating-chip {{form.rating >= item ? 'active' : ''}}">{{item}}</view>
+      </view>
+    </view>
+
+    <view class="divider"></view>
+
+    <view class="rating-row" wx:if="{{form.role === 'coach'}}">
+      <view>
+        <view class="card-title">准确性</view>
+        <view class="muted">问题点和风险点是否与视频相关</view>
+      </view>
+      <view class="rating">
+        <view wx:for="{{ratings}}" wx:key="*this" data-field="accuracyRating" data-value="{{item}}" bindtap="selectRating" class="rating-chip {{form.accuracyRating >= item ? 'active' : ''}}">{{item}}</view>
+      </view>
+    </view>
+
+    <view class="rating-row" wx:else>
+      <view>
+        <view class="card-title">上传体验</view>
+        <view class="muted">选择、上传、等待分析是否顺畅</view>
+      </view>
+      <view class="rating">
+        <view wx:for="{{ratings}}" wx:key="*this" data-field="uploadExperienceRating" data-value="{{item}}" bindtap="selectRating" class="rating-chip {{form.uploadExperienceRating >= item ? 'active' : ''}}">{{item}}</view>
+      </view>
+    </view>
+
+    <view class="divider"></view>
+
+    <view class="rating-row">
+      <view>
+        <view class="card-title">训练价值</view>
+        <view class="muted">{{form.role === 'coach' ? '是否有教学参考价值' : '是否知道下次怎么练'}}</view>
+      </view>
+      <view class="rating">
+        <view wx:for="{{ratings}}" wx:key="*this" data-field="usefulnessRating" data-value="{{item}}" bindtap="selectRating" class="rating-chip {{form.usefulnessRating >= item ? 'active' : ''}}">{{item}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section-title">问题标签</view>
+  <view class="card">
+    <view class="tag-grid">
+      <view wx:for="{{availableTags}}" wx:key="label" data-index="{{index}}" bindtap="toggleTag" class="choice-tag {{item.selected ? 'active' : ''}}">{{item.label}}</view>
+    </view>
+  </view>
+
+  <view class="section-title">补充说明</view>
+  <view class="card">
+    <textarea class="textarea" value="{{form.comment}}" bindinput="onComment" placeholder="{{form.role === 'coach' ? '例如：AI 对上身稳定性的判断准确，但建议补充马匹状态和视频角度说明。' : '例如：报告能看懂，但希望下次训练重点再具体一点。'}}"></textarea>
+    <view class="field-label" style="margin-top: 22rpx;">联系方式（选填）</view>
+    <input class="input" value="{{form.contact}}" bindinput="onContact" placeholder="微信或手机号，仅用于内测问题跟进" />
+    <view class="btn btn-primary" style="margin-top: 24rpx;" bindtap="submit" wx:if="{{!submitting}}">提交反馈</view>
+    <view class="btn btn-ghost" style="margin-top: 24rpx;" wx:else>提交中...</view>
+  </view>
+</view>

@@ -1,0 +1,46 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-title">历史趋势</view>
+    <view class="hero-subtitle">跟踪最近 5 次和 10 次训练变化，帮助教练判断学员是否持续进步。</view>
+  </view>
+
+  <view class="card">
+    <view class="row">
+      <view class="card-title">趋势范围</view>
+      <view class="tag">最近 {{limit}} 次</view>
+    </view>
+    <view class="row" style="margin-top: 24rpx;">
+      <view class="btn {{limit === 5 ? 'btn-primary' : 'btn-ghost'}}" style="flex: 1;" data-limit="5" bindtap="changeLimit">5 次</view>
+      <view class="btn {{limit === 10 ? 'btn-primary' : 'btn-ghost'}}" style="flex: 1;" data-limit="10" bindtap="changeLimit">10 次</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">总评分变化</view>
+    <view class="trend-chart">
+      <view class="trend-column" wx:for="{{trend.items}}" wx:key="id">
+        <view class="trend-bar" style="height: {{item.summary.overallScore * 1.6}}rpx;"></view>
+        <view class="trend-score">{{item.summary.overallScore}}</view>
+        <view class="trend-date">{{item.displayDate}}</view>
+      </view>
+    </view>
+    <view class="muted" style="margin-top: 22rpx;">{{trend.summary}}</view>
+  </view>
+
+  <view class="section-title">维度变化</view>
+  <view class="card" wx:for="{{trend.items}}" wx:key="id">
+    <view class="row">
+      <view class="card-title">{{item.trainingDate}}</view>
+      <view class="tag">{{item.summary.overallScore}} 分</view>
+    </view>
+    <view class="metric">姿态控制 {{item.scores.postureControl}}</view>
+    <view class="metric">节奏控制 {{item.scores.rhythmControl}}</view>
+    <view class="metric">骑坐稳定 {{item.scores.stability}}</view>
+    <view class="metric">风险点 {{item.riskPoints.length}} 个</view>
+  </view>
+
+  <view class="card" wx:if="{{trend.items.length < 2}}">
+    <view class="card-title">趋势数据不足</view>
+    <view class="muted">完成 2 次以上训练后，系统会生成趋势结论。</view>
+  </view>
+</view>

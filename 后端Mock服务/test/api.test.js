@@ -1,0 +1,184 @@
+const assert = require("assert");
+const { createServer } = require("../src/server");
+
+async function main() {
+  const server = createServer();
+  await new Promise((resolve) => server.listen(0, resolve));
+  const { port } = server.address();
+  const baseUrl = `http://127.0.0.1:${port}`;
+
+  try {
+    const health = await request(baseUrl, "GET", "/health");
+    assert.strictEqual(health.ok, true);
+
+    const profileRes = await request(baseUrl, "GET", "/api/student/profile");
+    assert.strictEqual(profileRes.profile.name, "王小涵");
+
+    const saveProfileRes = await request(baseUrl, "POST", "/api/student/profile", {
+      name: "王小涵",
+      age: 14,
+      heightCm: 160,
+      weightKg: 48,
+      ridingYears: 2,
+      currentLevel: "初级进阶",
+      coachName: "李教练",
+      clubName: "SOAI 示例马术俱乐部"
+    });
+    assert.strictEqual(saveProfileRes.success, true);
+
+    const uploadToken = await request(baseUrl, "POST", "/api/videos/upload-token", {
+      fileName: "training.mp4",
+      sizeMb: 82.5,
+      durationSec: 68,
+      format: "mp4",
+      analysisConsent: true,
+      caseConsent: false
+    });
+    assert.ok(uploadToken.videoId);
+
+    const uploadStatus = await request(baseUrl, "POST", `/api/videos/${uploadToken.videoId}/upload-status`, {
+      uploadStatus: "uploaded",
+      uploadProgress: 100,
+      uploadError: ""
+    });
+    assert.strictEqual(uploadStatus.success, true);
+
+    const taskCreated = await request(baseUrl, "POST", "/api/analysis/tasks", {
+      videoId: uploadToken.videoId,
+      studentId: profileRes.profile.id
+    });
+    assert.ok(taskCreated.taskId);
+
+    const task = await request(baseUrl, "GET", `/api/analysis/tasks/${taskCreated.taskId}`);
+    assert.strictEqual(task.status, "completed");
+    assert.ok(task.reportId);
+
+    const reportRes = await request(baseUrl, "GET", `/api/reports/${task.reportId}`);
+    assert.strictEqual(reportRes.report.id, task.reportId);
+    assert.ok(reportRes.report.problemPoints.length > 0);
+    assert.ok(reportRes.report.nextTrainingFocus.length > 0);
+    assert.ok(reportRes.report.limitations.length > 0);
+
+    const aiDraft = await request(baseUrl, "POST", "/api/ai/report-draft", {});
+    assert.strictEqual(aiDraft.validation.valid, true);
+    assert.ok(aiDraft.report.problemPoints.length > 0);
+
+    const aiValidation = await request(baseUrl, "POST", "/api/ai/report-validate", {
+      report: aiDraft.report
+    });
+    assert.strictEqual(aiValidation.valid, true);
+
+    const coachDraft = await request(baseUrl, "GET", `/api/ai/reports/${task.reportId}/coach-review-draft`);
+    assert.strictEqual(coachDraft.mustConfirmByCoach, true);
+    assert.ok(coachDraft.reviewDraft.includes("建议"));
+
+    const studentExplanation = await request(baseUrl, "GET", `/api/ai/reports/${task.reportId}/student-explanation`);
+    assert.ok(studentExplanation.explanation.includes("教练"));
+
+    const operationContent = await request(baseUrl, "GET", `/api/ai/reports/${task.reportId}/operation-content`);
+    assert.ok(operationContent.xiaohongshu.title);
+    assert.ok(operationContent.douyin.script.length > 0);
+
+    const operationsDashboard = await request(baseUrl, "GET", "/api/operations/dashboard");
+    assert.ok(operationsDashboard.kpis.length >= 6);
+    assert.ok(operationsDashboard.funnel.length >= 6);
+    assert.ok(operationsDashboard.channels.some((channel) => channel.name === "小红书"));
+    assert.ok(operationsDashboard.contentQueue.length >= 3);
+    assert.ok(operationsDashboard.feedbackSummary.count >= 1);
+    assert.ok(operationsDashboard.feedbackSummary.latest.length >= 1);
+    assert.ok(operationsDashboard.risks.length >= 1);
+
+    const dailyReport = await request(baseUrl, "GET", "/api/operations/daily-report");
+    assert.ok(dailyReport.conclusion.includes("内测") || dailyReport.conclusion.includes("链路"));
+    assert.ok(["go", "conditional_go"].includes(dailyReport.goStatus));
+    assert.strictEqual(dailyReport.reviewQuestions.length, 6);
+    assert.ok(dailyReport.nextActions.length >= 1);
+
+    const tracked = await request(baseUrl, "POST", "/api/analytics/events", {
+      eventName: "report_view",
+      reportId: task.reportId,
+      page: "report",
+      properties: {
+        entry: "analysis_complete"
+      }
+    });
+    assert.strictEqual(tracked.success, true);
+    assert.strictEqual(tracked.event.eventName, "report_view");
+
+    const analyticsEvents = await request(baseUrl, "GET", "/api/analytics/events?eventName=report_view");
+    assert.ok(analyticsEvents.items.some((event) => event.reportId === task.reportId));
+
+    const feedback = await request(baseUrl, "POST", "/api/feedback", {
+      role: "coach",
+      reportId: task.reportId,
+      rating: 5,
+      accuracyRating: 4,
+      usefulnessRating: 5,
+      comment: "问题点有参考价值，建议补充马匹状态信息。",
+      tags: ["报告有参考价值", "需补充视频角度"]
+    });
+    assert.strictEqual(feedback.success, true);
+    assert.strictEqual(feedback.feedback.role, "coach");
+
+    const feedbackSummary = await request(baseUrl, "GET", "/api/feedback/summary");
+    assert.ok(feedbackSummary.count >= 1);
+    assert.ok(feedbackSummary.averageUsefulness >= 1);
+
+    const trend = await request(baseUrl, "GET", `/api/students/${profileRes.profile.id}/trends?limit=5`);
+    assert.ok(trend.items.length >= 2);
+    assert.ok(trend.trendSummary.includes("最近"));
+
+    const dashboardBefore = await request(baseUrl, "GET", "/api/coach/dashboard");
+    assert.ok(dashboardBefore.stats.pendingReviewCount >= 1);
+
+    const review = await request(baseUrl, "POST", `/api/coach/reports/${task.reportId}/review`, {
+      status: "reviewed",
+      comment: "AI 对上身稳定性的判断基本准确，下次加强轻快步节奏。",
+      focusItems: ["轻快步节奏", "小腿稳定"],
+      assignmentComment: "下次训练前 10 分钟做轻快步节奏稳定练习。"
+    });
+    assert.strictEqual(review.success, true);
+    assert.strictEqual(review.report.coachReviewStatus, "reviewed");
+
+    const studentDetail = await request(baseUrl, "GET", `/api/coach/students/${profileRes.profile.id}`);
+    assert.ok(studentDetail.assignments.length >= 1);
+    assert.ok(studentDetail.repeatedProblems.length >= 1);
+
+    const invalidVideo = await request(baseUrl, "POST", "/api/videos/upload-token", {
+      fileName: "training.avi",
+      sizeMb: 10,
+      durationSec: 30,
+      format: "avi",
+      analysisConsent: true
+    }, 400);
+    assert.strictEqual(invalidVideo.code, "VIDEO_FORMAT_UNSUPPORTED");
+
+    const missingConsent = await request(baseUrl, "POST", "/api/videos/upload-token", {
+      fileName: "training.mp4",
+      sizeMb: 10,
+      durationSec: 30,
+      format: "mp4"
+    }, 400);
+    assert.strictEqual(missingConsent.code, "VIDEO_CONSENT_REQUIRED");
+
+    console.log("api mock tests passed");
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+async function request(baseUrl, method, path, body, expectedStatus = 200) {
+  const res = await fetch(`${baseUrl}${path}`, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const json = await res.json();
+  assert.strictEqual(res.status, expectedStatus, `${method} ${path} expected ${expectedStatus}, got ${res.status}: ${JSON.stringify(json)}`);
+  return json;
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

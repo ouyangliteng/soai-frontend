@@ -1,0 +1,19 @@
+{
+  "description": "马术 AI 教学小程序 V0.2 原型",
+  "packOptions": {
+    "ignore": []
+  },
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true
+  },
+  "compileType": "miniprogram",
+  "libVersion": "latest",
+  "appid": "touristappid",
+  "projectname": "soai-equestrian-ai-v02",
+  "condition": {}
+}
+

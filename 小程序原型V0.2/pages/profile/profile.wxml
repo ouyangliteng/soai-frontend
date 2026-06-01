@@ -1,0 +1,57 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-title">学员资料</view>
+    <view class="hero-subtitle">资料用于辅助 AI 判断训练背景，报告会保留生成当时的资料快照。</view>
+  </view>
+
+  <view class="card">
+    <view class="row">
+      <view>
+        <view class="card-title">数据源</view>
+        <view class="muted">当前：{{dataMode === 'api' ? 'Mock API 联调' : '本地演示'}}</view>
+      </view>
+      <view class="tag">{{dataMode}}</view>
+    </view>
+    <view class="row" style="margin-top: 22rpx;">
+      <view class="btn {{dataMode === 'local' ? 'btn-primary' : 'btn-ghost'}}" style="flex: 1;" data-mode="local" bindtap="switchDataMode">本地</view>
+      <view class="btn {{dataMode === 'api' ? 'btn-primary' : 'btn-ghost'}}" style="flex: 1;" data-mode="api" bindtap="switchDataMode">API</view>
+    </view>
+    <view class="divider"></view>
+
+    <view class="field">
+      <view class="field-label">姓名</view>
+      <input class="input" value="{{form.name}}" data-field="name" bindinput="onInput" placeholder="请输入学员姓名" />
+    </view>
+    <view class="field">
+      <view class="field-label">年龄</view>
+      <input class="input" type="number" value="{{form.age}}" data-field="age" bindinput="onInput" placeholder="请输入年龄" />
+    </view>
+    <view class="field">
+      <view class="field-label">身高 cm</view>
+      <input class="input" type="number" value="{{form.heightCm}}" data-field="heightCm" bindinput="onInput" placeholder="请输入身高" />
+    </view>
+    <view class="field">
+      <view class="field-label">体重 kg</view>
+      <input class="input" type="number" value="{{form.weightKg}}" data-field="weightKg" bindinput="onInput" placeholder="请输入体重" />
+    </view>
+    <view class="field">
+      <view class="field-label">骑龄 年</view>
+      <input class="input" type="number" value="{{form.ridingYears}}" data-field="ridingYears" bindinput="onInput" placeholder="请输入骑龄" />
+    </view>
+    <view class="field">
+      <view class="field-label">当前等级</view>
+      <input class="input" value="{{form.currentLevel}}" data-field="currentLevel" bindinput="onInput" placeholder="如：初级进阶" />
+    </view>
+    <view class="field">
+      <view class="field-label">所属教练</view>
+      <input class="input" value="{{form.coachName}}" data-field="coachName" bindinput="onInput" placeholder="请输入教练姓名" />
+    </view>
+    <view class="field">
+      <view class="field-label">所属俱乐部</view>
+      <input class="input" value="{{form.clubName}}" data-field="clubName" bindinput="onInput" placeholder="请输入俱乐部" />
+    </view>
+  </view>
+
+  <view class="btn btn-primary" style="margin-top: 28rpx;" bindtap="save">保存资料</view>
+  <view class="muted" style="margin-top: 18rpx;">姓名、骑龄、当前等级是上传训练视频前的重点字段。</view>
+</view>

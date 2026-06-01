@@ -1,0 +1,87 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-title">AI 训练分析</view>
+    <view class="hero-subtitle">上传本次骑乘视频，生成问题点、风险点、进步和下次训练重点。</view>
+  </view>
+
+  <view class="card">
+    <view class="row">
+      <view>
+        <view class="card-title">{{profile.name || '学员资料'}}</view>
+        <view class="muted">资料完整度 {{completion}}%</view>
+      </view>
+      <view class="tag">{{profile.currentLevel || '待补全'}}</view>
+    </view>
+    <view class="progress-track" style="margin-top: 22rpx;">
+      <view class="progress-bar" style="width: {{completion}}%;"></view>
+    </view>
+    <view class="row" style="margin-top: 24rpx;">
+      <view class="small">{{profile.coachName || '未绑定教练'}} · {{profile.clubName || '未选择俱乐部'}}</view>
+      <view class="tag tag-warning" wx:if="{{completion < 100}}">需完善</view>
+    </view>
+    <view class="btn btn-secondary" style="margin-top: 24rpx;" bindtap="goProfile">编辑学员资料</view>
+  </view>
+
+  <view class="section-title">训练视频</view>
+  <view class="card">
+    <view class="row">
+      <view>
+        <view class="card-title">上传本次训练</view>
+        <view class="muted">建议 15 秒到 3 分钟，画面包含骑手上身、腿部和行进方向。</view>
+      </view>
+    </view>
+    <view class="btn btn-primary" style="margin-top: 26rpx;" bindtap="goUpload">上传训练视频</view>
+  </view>
+
+  <view class="card" wx:if="{{activeTask}}">
+    <view class="row">
+      <view>
+        <view class="card-title">分析任务进行中</view>
+        <view class="muted">{{activeTask.progressText}}</view>
+      </view>
+      <view class="tag">{{activeTask.statusText}}</view>
+    </view>
+    <view class="btn btn-secondary" style="margin-top: 24rpx;" bindtap="goAnalysis">查看进度</view>
+  </view>
+
+  <view class="section-title">最近报告</view>
+  <view class="card" wx:if="{{latestReport}}">
+    <view class="row">
+      <view>
+        <view class="card-title">{{latestReport.summary.overallScore}} 分</view>
+        <view class="muted">{{latestReport.summary.oneLineConclusion}}</view>
+      </view>
+      <view class="tag">{{latestReport.trainingDate}}</view>
+    </view>
+    <view class="divider"></view>
+    <view class="row">
+      <view class="small">教练复核：{{latestReport.coachReviewStatus === 'reviewed' ? '已复核' : '待复核'}}</view>
+      <view class="small">风险点 {{latestReport.riskPoints.length}} 个</view>
+    </view>
+    <view class="btn btn-ghost" style="margin-top: 24rpx;" bindtap="goReport">查看完整报告</view>
+    <view class="btn btn-secondary" style="margin-top: 18rpx;" bindtap="goFeedback">反馈报告体验</view>
+  </view>
+
+  <view class="card" wx:else>
+    <view class="card-title">暂无训练报告</view>
+    <view class="muted">完成首次上传后，这里会显示 AI 训练报告。</view>
+  </view>
+
+  <view class="section-title">历史趋势</view>
+  <view class="card">
+    <view class="muted">{{trendSummary}}</view>
+    <view class="mini-chart">
+      <view class="chart-bar" wx:for="{{trendItems}}" wx:key="id" style="height: {{item.summary.overallScore}}rpx;">
+        <text>{{item.summary.overallScore}}</text>
+      </view>
+    </view>
+    <view class="btn btn-secondary" style="margin-top: 24rpx;" bindtap="goTrends">查看趋势</view>
+  </view>
+
+  <view class="section-title">内测反馈</view>
+  <view class="card">
+    <view class="card-title">帮助我们判断报告是否真的有用</view>
+    <view class="muted" style="margin-top: 14rpx;">反馈会用于优化上传体验、AI 报告表达和教练复核流程。</view>
+    <view class="btn btn-secondary" style="margin-top: 24rpx;" bindtap="goFeedback">填写反馈</view>
+  </view>
+</view>

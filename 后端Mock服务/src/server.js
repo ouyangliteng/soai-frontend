@@ -1,0 +1,322 @@
+const http = require("http");
+const { URL } = require("url");
+const { db } = require("./data");
+const {
+  completeTask,
+  getTaskView,
+  getTrend,
+  getCoachDashboard,
+  getCoachStudent,
+  formatCoachReport,
+  saveCoachReview
+} = require("./logic");
+const {
+  buildReportInput,
+  generateTrainingReport,
+  validateTrainingReport,
+  draftCoachReview,
+  generateStudentExplanation,
+  generateOperationContent
+} = require("./ai-agents");
+const { getOperationsDashboard, getOperationsDailyReport } = require("./operations");
+const {
+  trackEvent,
+  listEvents,
+  submitFeedback,
+  getFeedbackSummary
+} = require("./analytics");
+
+const PORT = Number(process.env.PORT || 8787);
+
+function createServer() {
+  return http.createServer(async (req, res) => {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+
+    try {
+      if (req.method === "OPTIONS") return send(res, 204, {});
+      if (req.method === "GET" && url.pathname === "/health") return send(res, 200, { ok: true, service: "soai-mock-api" });
+
+      if (req.method === "GET" && url.pathname === "/api/student/profile") {
+        return send(res, 200, { profile: db.profile });
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/student/profile") {
+        const payload = await readJson(req);
+        Object.assign(db.profile, payload, { updatedAt: new Date().toISOString() });
+        return send(res, 200, { success: true, profileId: db.profile.id, profile: db.profile });
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/videos/upload-token") {
+        const payload = await readJson(req);
+        const validation = validateVideo(payload);
+        if (validation) return send(res, 400, validation);
+
+        const video = {
+          id: `video_${Date.now()}`,
+          studentId: db.profile.id,
+          fileName: payload.fileName,
+          fileUrl: `https://mock.soai.yun/videos/${payload.fileName}`,
+          durationSec: payload.durationSec,
+          sizeMb: payload.sizeMb,
+          format: payload.format,
+          uploadStatus: "selected",
+          uploadProgress: 0,
+          uploadError: "",
+          analysisConsent: Boolean(payload.analysisConsent),
+          caseConsent: Boolean(payload.caseConsent),
+          consentAt: new Date().toISOString(),
+          createdAt: new Date().toISOString()
+        };
+        db.videos.push(video);
+        return send(res, 200, {
+          videoId: video.id,
+          uploadUrl: `http://localhost:${PORT}/mock-upload/${video.id}`,
+          maxSizeMb: 300,
+          expiresInSec: 900
+        });
+      }
+
+      const uploadStatusMatch = url.pathname.match(/^\/api\/videos\/([^/]+)\/upload-status$/);
+      if (req.method === "POST" && uploadStatusMatch) {
+        const video = db.videos.find((item) => item.id === uploadStatusMatch[1]);
+        if (!video) return sendError(res, 404, "VIDEO_NOT_FOUND", "未找到视频记录。");
+        const payload = await readJson(req);
+        Object.assign(video, payload);
+        return send(res, 200, { success: true, video });
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/analysis/tasks") {
+        const payload = await readJson(req);
+        const video = db.videos.find((item) => item.id === payload.videoId);
+        if (!video) return sendError(res, 404, "VIDEO_NOT_FOUND", "未找到视频记录。");
+
+        const task = {
+          id: `task_${Date.now()}`,
+          studentId: payload.studentId,
+          videoId: payload.videoId,
+          status: "queued",
+          progressText: "训练视频已上传，等待 AI 分析",
+          retryCount: 0,
+          errorCode: "",
+          errorMessage: "",
+          reportId: "",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        db.tasks.push(task);
+        return send(res, 200, { taskId: task.id, status: task.status });
+      }
+
+      const taskMatch = url.pathname.match(/^\/api\/analysis\/tasks\/([^/]+)$/);
+      if (req.method === "GET" && taskMatch) {
+        const task = db.tasks.find((item) => item.id === taskMatch[1]);
+        if (!task) return sendError(res, 404, "TASK_NOT_FOUND", "未找到分析任务。");
+        completeTask(task);
+        return send(res, 200, getTaskView(task));
+      }
+
+      const retryMatch = url.pathname.match(/^\/api\/analysis\/tasks\/([^/]+)\/retry$/);
+      if (req.method === "POST" && retryMatch) {
+        const oldTask = db.tasks.find((item) => item.id === retryMatch[1]);
+        if (!oldTask) return sendError(res, 404, "TASK_NOT_FOUND", "未找到分析任务。");
+
+        const task = {
+          ...oldTask,
+          id: `task_${Date.now()}`,
+          status: "queued",
+          progressText: "重新进入分析队列",
+          retryCount: oldTask.retryCount + 1,
+          reportId: "",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        db.tasks.push(task);
+        return send(res, 200, { taskId: task.id, status: task.status });
+      }
+
+      const reportMatch = url.pathname.match(/^\/api\/reports\/([^/]+)$/);
+      if (req.method === "GET" && reportMatch) {
+        const report = db.reports.find((item) => item.id === reportMatch[1]);
+        if (!report) return sendError(res, 404, "REPORT_NOT_FOUND", "未找到报告。");
+        return send(res, 200, { report });
+      }
+
+      const trendMatch = url.pathname.match(/^\/api\/students\/([^/]+)\/trends$/);
+      if (req.method === "GET" && trendMatch) {
+        return send(res, 200, getTrend(trendMatch[1], url.searchParams.get("limit") || 5));
+      }
+
+      const coachReviewMatch = url.pathname.match(/^\/api\/reports\/([^/]+)\/coach-review$/);
+      if (req.method === "POST" && coachReviewMatch) {
+        const result = saveCoachReview(coachReviewMatch[1], await readJson(req));
+        if (!result) return sendError(res, 404, "REPORT_NOT_FOUND", "未找到报告。");
+        return send(res, 200, { success: true, review: result.review, report: result.report });
+      }
+
+      if (req.method === "GET" && url.pathname === "/api/coach/dashboard") {
+        return send(res, 200, getCoachDashboard());
+      }
+
+      if (req.method === "GET" && url.pathname === "/api/coach/reports") {
+        const status = url.searchParams.get("status");
+        const reports = db.reports
+          .filter((report) => !status || report.coachReviewStatus === status)
+          .map(formatCoachReport);
+        return send(res, 200, { items: reports });
+      }
+
+      if (req.method === "GET" && url.pathname === "/api/coach/students") {
+        return send(res, 200, { items: getCoachDashboard().activeStudents });
+      }
+
+      const coachStudentMatch = url.pathname.match(/^\/api\/coach\/students\/([^/]+)$/);
+      if (req.method === "GET" && coachStudentMatch) {
+        return send(res, 200, getCoachStudent(coachStudentMatch[1]));
+      }
+
+      const coachReviewSubmitMatch = url.pathname.match(/^\/api\/coach\/reports\/([^/]+)\/review$/);
+      if (req.method === "POST" && coachReviewSubmitMatch) {
+        const result = saveCoachReview(coachReviewSubmitMatch[1], await readJson(req));
+        if (!result) return sendError(res, 404, "REPORT_NOT_FOUND", "未找到报告。");
+        return send(res, 200, { success: true, review: result.review, report: result.report });
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/ai/report-draft") {
+        const payload = await readJson(req);
+        const input = payload.studentProfile
+          ? payload
+          : buildReportInput({
+              profile: db.profile,
+              video: db.videos[db.videos.length - 1],
+              history: db.reports.slice(-5)
+            });
+        const report = generateTrainingReport(input);
+        const validation = validateTrainingReport(report);
+        return send(res, 200, { report, validation });
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/ai/report-validate") {
+        const payload = await readJson(req);
+        return send(res, 200, validateTrainingReport(payload.report || payload));
+      }
+
+      const coachDraftMatch = url.pathname.match(/^\/api\/ai\/reports\/([^/]+)\/coach-review-draft$/);
+      if (req.method === "GET" && coachDraftMatch) {
+        const report = db.reports.find((item) => item.id === coachDraftMatch[1]);
+        if (!report) return sendError(res, 404, "REPORT_NOT_FOUND", "未找到报告。");
+        return send(res, 200, draftCoachReview(report));
+      }
+
+      const studentExplanationMatch = url.pathname.match(/^\/api\/ai\/reports\/([^/]+)\/student-explanation$/);
+      if (req.method === "GET" && studentExplanationMatch) {
+        const report = db.reports.find((item) => item.id === studentExplanationMatch[1]);
+        if (!report) return sendError(res, 404, "REPORT_NOT_FOUND", "未找到报告。");
+        return send(res, 200, generateStudentExplanation(report));
+      }
+
+      const operationContentMatch = url.pathname.match(/^\/api\/ai\/reports\/([^/]+)\/operation-content$/);
+      if (req.method === "GET" && operationContentMatch) {
+        const report = db.reports.find((item) => item.id === operationContentMatch[1]);
+        if (!report) return sendError(res, 404, "REPORT_NOT_FOUND", "未找到报告。");
+        return send(res, 200, generateOperationContent(report));
+      }
+
+      if (req.method === "GET" && url.pathname === "/api/operations/dashboard") {
+        return send(res, 200, getOperationsDashboard());
+      }
+
+      if (req.method === "GET" && url.pathname === "/api/operations/daily-report") {
+        return send(res, 200, getOperationsDailyReport());
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/analytics/events") {
+        const result = trackEvent(await readJson(req));
+        if (result.error) return send(res, 400, result.error);
+        return send(res, 200, { success: true, event: result.event });
+      }
+
+      if (req.method === "GET" && url.pathname === "/api/analytics/events") {
+        return send(res, 200, {
+          items: listEvents({
+            eventName: url.searchParams.get("eventName"),
+            studentId: url.searchParams.get("studentId"),
+            reportId: url.searchParams.get("reportId")
+          })
+        });
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/feedback") {
+        return send(res, 200, { success: true, feedback: submitFeedback(await readJson(req)) });
+      }
+
+      if (req.method === "GET" && url.pathname === "/api/feedback/summary") {
+        return send(res, 200, getFeedbackSummary());
+      }
+
+      return sendError(res, 404, "NOT_FOUND", "接口不存在。");
+    } catch (error) {
+      return sendError(res, 500, "INTERNAL_ERROR", error.message);
+    }
+  });
+}
+
+function validateVideo(payload) {
+  if (!payload.analysisConsent) {
+    return { code: "VIDEO_CONSENT_REQUIRED", message: "请先确认视频仅用于本次训练分析和教练复核。" };
+  }
+  if (!["mp4", "mov"].includes(String(payload.format || "").toLowerCase())) {
+    return { code: "VIDEO_FORMAT_UNSUPPORTED", message: "暂不支持该视频格式，请上传 mp4 或 mov。" };
+  }
+  if (Number(payload.sizeMb) > 300) {
+    return { code: "VIDEO_TOO_LARGE", message: "视频文件过大，请压缩或选择较短片段。" };
+  }
+  if (Number(payload.durationSec) < 15) {
+    return { code: "VIDEO_TOO_SHORT", message: "视频片段过短，请上传至少 15 秒训练视频。" };
+  }
+  if (Number(payload.durationSec) > 180) {
+    return { code: "VIDEO_TOO_LONG", message: "视频过长，请截取 3 分钟以内关键训练片段。" };
+  }
+  return null;
+}
+
+function readJson(req) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
+    req.on("end", () => {
+      if (!body) return resolve({});
+      try {
+        resolve(JSON.parse(body));
+      } catch (error) {
+        reject(new Error("请求 JSON 格式不正确。"));
+      }
+    });
+  });
+}
+
+function sendError(res, status, code, message) {
+  return send(res, status, { code, message });
+}
+
+function send(res, status, payload) {
+  res.writeHead(status, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type"
+  });
+  if (status === 204) return res.end();
+  res.end(JSON.stringify(payload));
+}
+
+if (require.main === module) {
+  createServer().listen(PORT, () => {
+    console.log(`SOAI mock API listening on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = {
+  createServer
+};

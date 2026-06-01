@@ -1,0 +1,14 @@
+{
+  "name": "soai-equestrian-mock-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SOAI 马术 AI 教学小程序 Mock API",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node test/api.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
+
