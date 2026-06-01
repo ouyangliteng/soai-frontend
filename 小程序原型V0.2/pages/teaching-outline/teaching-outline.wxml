@@ -1,0 +1,75 @@
+<view class="page" wx:if="{{report}}">
+  <view class="hero">
+    <view class="hero-title">阶段教学大纲</view>
+    <view class="hero-subtitle">{{report.studentSnapshot.name}} · {{report.studentSnapshot.currentLevel}} · 最近报告 {{report.summary.overallScore}} 分</view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">AI 报告依据</view>
+    <view class="muted" style="margin-top: 16rpx;">主要问题：{{report.problemPoints[0].title}}</view>
+    <view class="muted" style="margin-top: 10rpx;">风险关注：{{report.riskPoints[0].title}}</view>
+    <view class="divider"></view>
+    <view class="list-item" wx:for="{{report.nextTrainingFocus}}" wx:key="*this">{{index + 1}}. {{item}}</view>
+  </view>
+
+  <view class="section-title">教练补充</view>
+  <view class="card">
+    <view class="field-label">教练对学员的认知</view>
+    <textarea class="textarea" value="{{coachObservation}}" bindinput="onCoachObservation" placeholder="例如：胆量可以，但快步容易紧张；理解能力强，适合短口令；转弯前需要视线提醒。"></textarea>
+
+    <view class="field-label" style="margin-top: 22rpx;">阶段目标</view>
+    <textarea class="textarea textarea-small" value="{{stageGoal}}" bindinput="onStageGoal" placeholder="例如：未来 4 周提升快步节奏稳定和转弯路线意识。"></textarea>
+
+    <view class="field-label" style="margin-top: 22rpx;">周期</view>
+    <slider min="2" max="8" step="1" value="{{weeks}}" show-value bindchange="onWeeks"></slider>
+
+    <view class="field-label" style="margin-top: 22rpx;">训练约束</view>
+    <textarea class="textarea textarea-small" value="{{constraints}}" bindinput="onConstraints" placeholder="例如：每周 2 次训练，优先安全和基础稳定。"></textarea>
+
+    <view class="btn btn-primary" style="margin-top: 24rpx;" bindtap="generateOutline">{{loading ? '生成中...' : '生成教学任务大纲'}}</view>
+  </view>
+
+  <view wx:if="{{outline}}">
+    <view class="section-title">{{outline.title}}</view>
+    <view class="card">
+      <view class="card-title">阶段目标</view>
+      <view class="muted" style="margin-top: 14rpx;">{{outline.stageGoal}}</view>
+      <view class="divider"></view>
+      <view class="small caution">{{outline.safetyBoundary}}</view>
+    </view>
+
+    <view class="section-title">生成依据</view>
+    <view class="card">
+      <view class="list-item" wx:for="{{outline.aiBasis}}" wx:key="*this">{{item}}</view>
+    </view>
+
+    <view class="section-title">按周任务</view>
+    <view class="card week-card" wx:for="{{outline.weeklyPlan}}" wx:key="week">
+      <view class="row">
+        <view class="card-title">第 {{item.week}} 周</view>
+        <view class="tag">{{item.theme}}</view>
+      </view>
+
+      <view class="sub-title">教练任务</view>
+      <view class="list-item" wx:for="{{item.coachTasks}}" wx:for-item="task" wx:key="*this">{{task}}</view>
+
+      <view class="sub-title">学员任务</view>
+      <view class="list-item" wx:for="{{item.studentTasks}}" wx:for-item="task" wx:key="*this">{{task}}</view>
+
+      <view class="sub-title">AI 复盘重点</view>
+      <view class="tag-list">
+        <view class="tag" wx:for="{{item.aiReviewFocus}}" wx:for-item="focus" wx:key="*this">{{focus}}</view>
+      </view>
+
+      <view class="sub-title">验收标准</view>
+      <view class="list-item" wx:for="{{item.acceptance}}" wx:for-item="task" wx:key="*this">{{task}}</view>
+    </view>
+
+    <view class="section-title">复核清单</view>
+    <view class="card">
+      <view class="list-item" wx:for="{{outline.reviewChecklist}}" wx:key="*this">{{item}}</view>
+      <view class="divider"></view>
+      <view class="muted">{{outline.nextUploadRequirement}}</view>
+    </view>
+  </view>
+</view>

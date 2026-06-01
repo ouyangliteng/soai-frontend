@@ -6,6 +6,7 @@ Page({
     coachComment: "",
     coachFocusText: "",
     studentExplanation: null,
+    productSuggestions: null,
     draftLoading: false,
     readCompleteTracked: false
   },
@@ -25,6 +26,7 @@ Page({
         reportId: report.id
       });
       this.loadStudentExplanation(report.id);
+      this.loadProductSuggestions(report.id);
       this.readTimer = setTimeout(() => this.trackReadComplete("timer"), 30000);
     } catch (error) {
       wx.showToast({ title: error.message || "报告加载失败", icon: "none" });
@@ -45,6 +47,15 @@ Page({
       this.setData({ studentExplanation });
     } catch (error) {
       this.setData({ studentExplanation: null });
+    }
+  },
+
+  async loadProductSuggestions(reportId) {
+    try {
+      const productSuggestions = await dataService.getProductSuggestions(reportId);
+      this.setData({ productSuggestions });
+    } catch (error) {
+      this.setData({ productSuggestions: null });
     }
   },
 
@@ -122,5 +133,10 @@ Page({
   goFeedback() {
     if (!this.data.report) return;
     wx.navigateTo({ url: `/pages/feedback/feedback?reportId=${this.data.report.id}` });
+  },
+
+  goTeachingOutline() {
+    if (!this.data.report) return;
+    wx.navigateTo({ url: `/pages/teaching-outline/teaching-outline?reportId=${this.data.report.id}` });
   }
 });

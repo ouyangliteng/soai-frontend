@@ -2,6 +2,7 @@ const PROFILE_KEY = "soai_student_profile";
 const REPORTS_KEY = "soai_training_reports";
 const TASK_KEY = "soai_active_analysis_task";
 const ASSIGNMENTS_KEY = "soai_training_assignments";
+const TEACHING_OUTLINES_KEY = "soai_teaching_outlines";
 
 const seedProfile = {
   id: "student_demo",
@@ -78,6 +79,9 @@ function ensureSeedData() {
   if (!wx.getStorageSync(ASSIGNMENTS_KEY)) {
     wx.setStorageSync(ASSIGNMENTS_KEY, []);
   }
+  if (!wx.getStorageSync(TEACHING_OUTLINES_KEY)) {
+    wx.setStorageSync(TEACHING_OUTLINES_KEY, []);
+  }
 }
 
 function getProfile() {
@@ -140,6 +144,45 @@ function saveAssignment(report, comment, focusItems) {
 
 function getAssignments() {
   return wx.getStorageSync(ASSIGNMENTS_KEY) || [];
+}
+
+function generateTeachingOutline(reportId, payload = {}) {
+  const report = getReport(reportId);
+  if (!report) return null;
+  const weeks = clampWeeks(payload.weeks || 4);
+  const focusItems = report.coachFocusItems && report.coachFocusItems.length ? report.coachFocusItems : report.nextTrainingFocus.slice(0, 3);
+  const outline = {
+    id: `outline_${Date.now()}`,
+    reportId: report.id,
+    studentId: report.studentSnapshot.id,
+    title: `${weeks} 周阶段性教学任务大纲`,
+    coachObservation: payload.coachObservation || "教练尚未补充学员认知，建议生成后由教练结合现场情况修订。",
+    stageGoal: payload.stageGoal || `未来 ${weeks} 周优先提升${focusItems.slice(0, 2).join("、")}。`,
+    constraints: payload.constraints || "以安全和基础稳定性为优先，每次训练只抓 1 到 2 个重点。",
+    aiBasis: [
+      `本次主要问题：${report.problemPoints[0].title}`,
+      `风险关注：${report.riskPoints[0] ? report.riskPoints[0].title : "本次未标记中高风险点"}`,
+      `趋势依据：${getTrend(5).summary}`
+    ],
+    safetyBoundary: "AI 只生成教学辅助大纲，不替代教练现场判断。涉及风险动作、马匹状态和训练强度时，必须由教练确认后执行。",
+    weeklyPlan: Array.from({ length: weeks }).map((_, index) => buildWeeklyPlanItem(index, focusItems, report)),
+    reviewChecklist: [
+      "本周训练目标是否被学员理解。",
+      "视频报告中的问题点是否在现场复核成立。",
+      "风险点是否已转成训练前检查和训练中提醒。",
+      "下次上传视频是否能覆盖同类动作，便于趋势对比。"
+    ],
+    nextUploadRequirement: "建议下次上传 30 到 90 秒同类训练片段，保持相近拍摄角度，便于 AI 和教练对比趋势。",
+    mustConfirmByCoach: true,
+    createdAt: new Date().toISOString()
+  };
+  const outlines = getTeachingOutlines();
+  wx.setStorageSync(TEACHING_OUTLINES_KEY, outlines.concat(outline));
+  return outline;
+}
+
+function getTeachingOutlines() {
+  return wx.getStorageSync(TEACHING_OUTLINES_KEY) || [];
 }
 
 function addReportFromTask(task) {
@@ -217,8 +260,47 @@ function getCoachStudentDetail(studentId) {
     trend: getTrend(5),
     reports: reports.slice().reverse(),
     assignments: getAssignments(),
+    teachingOutlines: getTeachingOutlines().filter((outline) => outline.studentId === (profile && profile.id)),
     repeatedProblems,
     repeatedRisks
+  };
+}
+
+function buildWeeklyPlanItem(index, focusItems, report) {
+  const themes = [
+    "建立安全边界和动作基线",
+    "强化节奏与骑坐稳定",
+    "转化为路线和扶助任务",
+    "阶段复盘与下一阶段目标"
+  ];
+  const problemTitle = report.problemPoints[0].title;
+  const riskTitle = report.riskPoints[0] ? report.riskPoints[0].title : "基础安全意识";
+  const focus = focusItems[index % focusItems.length] || focusItems[0] || problemTitle;
+  return {
+    week: index + 1,
+    theme: themes[Math.min(index, themes.length - 1)],
+    coachTasks: [
+      `训练前确认本周主目标：${focus}`,
+      `结合现场情况复核“${problemTitle}”是否仍然出现`,
+      `将“${riskTitle}”转成训练中的短口令提醒`
+    ],
+    studentTasks: [
+      "训练前复述本周 1 个动作重点。",
+      "训练中只关注教练确认的核心提醒，不同时追求过多动作变化。"
+    ],
+    aiReviewFocus: [
+      focus,
+      problemTitle,
+      riskTitle
+    ],
+    homework: [
+      "课后查看本周报告解读。",
+      "记录 1 条自己最能理解的动作提醒。"
+    ],
+    acceptance: [
+      "教练确认本周重点完成情况。",
+      "下次视频中同类问题出现频率降低或稳定性提高。"
+    ]
   };
 }
 
@@ -288,6 +370,12 @@ function pad(value) {
   return String(value).padStart(2, "0");
 }
 
+function clampWeeks(value) {
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue)) return 4;
+  return Math.max(2, Math.min(8, Math.round(numberValue)));
+}
+
 module.exports = {
   ensureSeedData,
   getProfile,
@@ -297,6 +385,8 @@ module.exports = {
   getReport,
   saveCoachReview,
   getAssignments,
+  generateTeachingOutline,
+  getTeachingOutlines,
   addReportFromTask,
   getTrend,
   getCoachDashboard,

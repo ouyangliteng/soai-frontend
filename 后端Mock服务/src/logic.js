@@ -124,7 +124,8 @@ function getCoachStudent(studentId) {
     reports: reports.slice().reverse(),
     repeatedProblems: collectTopTitles(reports, "problemPoints"),
     repeatedRisks: collectTopTitles(reports, "riskPoints"),
-    assignments: db.assignments.filter((assignment) => assignment.studentId === studentId)
+    assignments: db.assignments.filter((assignment) => assignment.studentId === studentId),
+    teachingOutlines: db.teachingOutlines.filter((outline) => outline.studentId === studentId)
   };
 }
 
@@ -193,4 +194,3 @@ module.exports = {
   formatCoachReport,
   saveCoachReview
 };
-

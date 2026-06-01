@@ -15,10 +15,12 @@ const {
   generateTrainingReport,
   validateTrainingReport,
   draftCoachReview,
+  generateTeachingOutline,
   generateStudentExplanation,
   generateOperationContent
 } = require("./ai-agents");
 const { getOperationsDashboard, getOperationsDailyReport } = require("./operations");
+const { getProductSuggestions } = require("./product-suggestions");
 const {
   trackEvent,
   listEvents,
@@ -181,6 +183,16 @@ function createServer() {
         return send(res, 200, { success: true, review: result.review, report: result.report });
       }
 
+      const teachingOutlineMatch = url.pathname.match(/^\/api\/coach\/reports\/([^/]+)\/teaching-outline$/);
+      if (req.method === "POST" && teachingOutlineMatch) {
+        const report = db.reports.find((item) => item.id === teachingOutlineMatch[1]);
+        if (!report) return sendError(res, 404, "REPORT_NOT_FOUND", "未找到报告。");
+        const payload = await readJson(req);
+        const outline = generateTeachingOutline(report, getTrend(report.studentId, 5), payload);
+        db.teachingOutlines.push(outline);
+        return send(res, 200, { success: true, outline });
+      }
+
       if (req.method === "POST" && url.pathname === "/api/ai/report-draft") {
         const payload = await readJson(req);
         const input = payload.studentProfile
@@ -219,6 +231,13 @@ function createServer() {
         const report = db.reports.find((item) => item.id === operationContentMatch[1]);
         if (!report) return sendError(res, 404, "REPORT_NOT_FOUND", "未找到报告。");
         return send(res, 200, generateOperationContent(report));
+      }
+
+      const productSuggestionMatch = url.pathname.match(/^\/api\/reports\/([^/]+)\/product-suggestions$/);
+      if (req.method === "GET" && productSuggestionMatch) {
+        const report = db.reports.find((item) => item.id === productSuggestionMatch[1]);
+        if (!report) return sendError(res, 404, "REPORT_NOT_FOUND", "未找到报告。");
+        return send(res, 200, getProductSuggestions(report));
       }
 
       if (req.method === "GET" && url.pathname === "/api/operations/dashboard") {

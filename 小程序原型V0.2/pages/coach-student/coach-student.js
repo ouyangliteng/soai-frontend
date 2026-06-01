@@ -22,5 +22,10 @@ Page({
   openReport(event) {
     const id = event.currentTarget.dataset.id;
     wx.navigateTo({ url: `/pages/report/report?id=${id}` });
+  },
+
+  openTeachingOutline(event) {
+    const id = event.currentTarget.dataset.id;
+    wx.navigateTo({ url: `/pages/teaching-outline/teaching-outline?reportId=${id}` });
   }
 });

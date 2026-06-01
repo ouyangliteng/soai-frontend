@@ -30,6 +30,7 @@ const db = {
   reports: [],
   reviews: [],
   assignments: [],
+  teachingOutlines: [],
   analyticsEvents: [],
   feedbackItems: []
 };

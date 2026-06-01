@@ -72,12 +72,28 @@ async function main() {
     assert.strictEqual(coachDraft.mustConfirmByCoach, true);
     assert.ok(coachDraft.reviewDraft.includes("建议"));
 
+    const teachingOutline = await request(baseUrl, "POST", `/api/coach/reports/${task.reportId}/teaching-outline`, {
+      coachObservation: "学员胆量可以，但快步时容易急于向前，转弯前需要更多视线提醒。",
+      stageGoal: "未来 4 周提升快步节奏稳定和转弯路线意识。",
+      weeks: 4,
+      constraints: "每周 2 次训练，优先安全和基础稳定。"
+    });
+    assert.strictEqual(teachingOutline.success, true);
+    assert.strictEqual(teachingOutline.outline.mustConfirmByCoach, true);
+    assert.strictEqual(teachingOutline.outline.weeklyPlan.length, 4);
+    assert.ok(teachingOutline.outline.safetyBoundary.includes("教练"));
+
     const studentExplanation = await request(baseUrl, "GET", `/api/ai/reports/${task.reportId}/student-explanation`);
     assert.ok(studentExplanation.explanation.includes("教练"));
 
     const operationContent = await request(baseUrl, "GET", `/api/ai/reports/${task.reportId}/operation-content`);
     assert.ok(operationContent.xiaohongshu.title);
     assert.ok(operationContent.douyin.script.length > 0);
+
+    const productSuggestions = await request(baseUrl, "GET", `/api/reports/${task.reportId}/product-suggestions`);
+    assert.ok(productSuggestions.items.length >= 2);
+    assert.ok(productSuggestions.items.some((item) => item.productName.includes("护甲")));
+    assert.ok(productSuggestions.summary.includes("不构成强制购买建议"));
 
     const operationsDashboard = await request(baseUrl, "GET", "/api/operations/dashboard");
     assert.ok(operationsDashboard.kpis.length >= 6);
@@ -142,6 +158,7 @@ async function main() {
 
     const studentDetail = await request(baseUrl, "GET", `/api/coach/students/${profileRes.profile.id}`);
     assert.ok(studentDetail.assignments.length >= 1);
+    assert.ok(studentDetail.teachingOutlines.length >= 1);
     assert.ok(studentDetail.repeatedProblems.length >= 1);
 
     const invalidVideo = await request(baseUrl, "POST", "/api/videos/upload-token", {

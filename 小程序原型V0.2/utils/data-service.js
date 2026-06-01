@@ -198,6 +198,12 @@ async function saveCoachReview(reportId, comment, focusItems = []) {
   return normalizeReport(res.report);
 }
 
+async function generateTeachingOutline(reportId, payload = {}) {
+  if (!isApiMode()) return store.generateTeachingOutline(reportId, payload);
+  const res = await api.generateTeachingOutline(reportId, payload);
+  return res.outline;
+}
+
 async function getCoachReviewDraft(reportId) {
   if (isApiMode()) return api.getCoachReviewDraft(reportId);
   const report = store.getReport(reportId);
@@ -219,6 +225,52 @@ async function getStudentExplanation(reportId) {
     title: "本次训练报告解读",
     explanation: `这次报告的重点不是分数本身，而是${report.problemPoints[0].title}。下次训练可以先关注：${report.nextTrainingFocus.slice(0, 2).join("、")}。风险提示需要结合教练现场判断。`,
     nextAction: "下次训练后继续上传同类视频，系统会生成趋势变化。"
+  };
+}
+
+async function getProductSuggestions(reportId) {
+  if (isApiMode()) return api.getProductSuggestions(reportId);
+  const report = store.getReport(reportId);
+  return buildLocalProductSuggestions(report);
+}
+
+function buildLocalProductSuggestions(report) {
+  return {
+    reportId,
+    title: "训练装备与服务建议",
+    summary: "以下内容基于本次报告的训练场景生成，用于安全意识、训练沟通和复盘服务说明，不构成强制购买建议。",
+    items: [
+      {
+        id: "product_air_vest",
+        productName: "马术充气护甲",
+        category: "安全装备知识",
+        scenario: "适合在训练前建立风险意识，尤其是快步、转弯、过渡等基础训练场景。",
+        whyRelevant: report && report.riskPoints && report.riskPoints.length ? "本次报告包含风险点，建议把装备检查作为训练前固定流程。" : "日常训练也建议保持基础安全装备检查。",
+        knowledgePoints: [
+          "护甲不能替代正确骑姿、教练保护和场地安全管理。",
+          "训练前应检查气瓶、连接绳、尺码贴合度和穿戴位置。",
+          "公开内容中只能表达风险意识提升，不能承诺完全避免伤害。"
+        ],
+        nextStep: "需要了解护甲型号和穿戴方式时，可咨询教练或天猫旗舰店客服。",
+        ctaLabel: "了解护甲知识",
+        caution: "装备建议需结合学员年龄、训练内容和教练判断。"
+      },
+      {
+        id: "product_training_headset",
+        productName: "马术教学耳机",
+        category: "训练沟通工具",
+        scenario: "适合训练中需要及时听到教练节奏、路线和扶助提醒的场景。",
+        whyRelevant: "报告中的下次训练重点需要在训练中反复提醒，教学耳机可以帮助教练把指令更及时地传达给学员。",
+        knowledgePoints: [
+          "耳机用于提升训练沟通效率，不替代教练观察和现场保护。",
+          "适合节奏控制、转弯路线、视线方向等需要即时提醒的训练重点。",
+          "训练后仍建议上传视频复盘，形成训练闭环。"
+        ],
+        nextStep: "下次训练可让教练把报告中的 1 到 2 个重点转成即时口令。",
+        ctaLabel: "了解教学耳机",
+        caution: "使用时应遵守俱乐部和教练的训练安排。"
+      }
+    ]
   };
 }
 
@@ -302,8 +354,10 @@ module.exports = {
   getCoachDashboard,
   getCoachStudentDetail,
   saveCoachReview,
+  generateTeachingOutline,
   getCoachReviewDraft,
   getStudentExplanation,
+  getProductSuggestions,
   trackEvent,
   submitFeedback
 };

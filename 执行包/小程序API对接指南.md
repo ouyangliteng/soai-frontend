@@ -52,6 +52,7 @@ http://127.0.0.1:8787
 - 历史趋势
 - 教练工作台
 - 学员详情
+- 阶段教学大纲
 
 也可以在调试器中手动设置：
 
@@ -82,8 +83,10 @@ wx.setStorageSync("soai_data_mode", "local")
 | `store.getCoachDashboard` | `api.getCoachDashboard` | `GET /api/coach/dashboard` |
 | `store.getCoachStudentDetail` | `api.getCoachStudent` | `GET /api/coach/students/{studentId}` |
 | `store.saveCoachReview` | `api.submitCoachReview` | `POST /api/coach/reports/{reportId}/review` |
+| `store.generateTeachingOutline` | `api.generateTeachingOutline` | `POST /api/coach/reports/{reportId}/teaching-outline` |
 | 无 | `api.trackEvent` | `POST /api/analytics/events` |
 | 无 | `api.submitFeedback` | `POST /api/feedback` |
+| 无 | `api.getProductSuggestions` | `GET /api/reports/{reportId}/product-suggestions` |
 
 ## 4. 建议替换顺序
 
@@ -150,6 +153,7 @@ pages/* -> utils/data-service.js -> 本地 store.js 或 HTTP api.js
 - 教练工作台。
 - 学员详情。
 - 待复核报告。
+- 阶段教学大纲生成。
 
 ### 第 5 步：埋点和反馈
 

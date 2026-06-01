@@ -8,17 +8,23 @@
 
 学员资料 -> 视频上传凭证 -> 上传状态 -> AI 分析任务 -> 报告详情 -> 历史趋势 -> 教练工作台 -> 教练复核 -> 训练重点
 
+教练端新增：
+
+学员报告 -> 教练补充学员认知 -> 生成阶段性教学任务大纲
+
 同时包含第一版 AI 智能体接口：
 
 - AI 报告草稿
 - AI 报告质量校验
 - 教练复核草稿
 - 学员报告解读
+- 阶段性教学任务大纲
 - 运营内容草稿
 - 运营数据看板
 - 主链路埋点和学员/教练反馈
 - 运营看板反馈质量汇总
 - 内测日报汇总
+- 报告相关产品知识建议
 
 ## 2. 启动
 
@@ -62,6 +68,7 @@ npm test
 - 验证视频格式错误码
 - 生成 AI 报告草稿并校验
 - 生成教练复核草稿、学员解读和运营内容
+- 生成阶段性教学任务大纲
 - 获取运营数据看板
 - 获取内测日报
 - 上报埋点、查询埋点、提交反馈和获取反馈汇总
@@ -78,6 +85,7 @@ npm test
 - `GET /api/analysis/tasks/{taskId}`
 - `POST /api/analysis/tasks/{taskId}/retry`
 - `GET /api/reports/{reportId}`
+- `GET /api/reports/{reportId}/product-suggestions`
 - `GET /api/students/{studentId}/trends?limit=5`
 - `POST /api/reports/{reportId}/coach-review`
 
@@ -93,6 +101,7 @@ npm test
 - `GET /api/coach/students`
 - `GET /api/coach/students/{studentId}`
 - `POST /api/coach/reports/{reportId}/review`
+- `POST /api/coach/reports/{reportId}/teaching-outline`
 
 ### AI 智能体
 
@@ -130,6 +139,7 @@ utils/api.js
 - `getTrend` -> `GET /api/students/{studentId}/trends?limit=5`
 - `getCoachDashboard` -> `GET /api/coach/dashboard`
 - `saveCoachReview` -> `POST /api/coach/reports/{reportId}/review`
+- `generateTeachingOutline` -> `POST /api/coach/reports/{reportId}/teaching-outline`
 - `trackEvent` -> `POST /api/analytics/events`
 - `submitFeedback` -> `POST /api/feedback`
 

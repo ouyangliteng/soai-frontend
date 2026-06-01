@@ -102,6 +102,13 @@ function submitCoachReview(reportId, payload) {
   });
 }
 
+function generateTeachingOutline(reportId, payload) {
+  return request(`/api/coach/reports/${reportId}/teaching-outline`, {
+    method: "POST",
+    data: payload
+  });
+}
+
 function getCoachReviewDraft(reportId) {
   return request(`/api/ai/reports/${reportId}/coach-review-draft`);
 }
@@ -112,6 +119,10 @@ function getStudentExplanation(reportId) {
 
 function getOperationContent(reportId) {
   return request(`/api/ai/reports/${reportId}/operation-content`);
+}
+
+function getProductSuggestions(reportId) {
+  return request(`/api/reports/${reportId}/product-suggestions`);
 }
 
 function trackEvent(payload) {
@@ -146,9 +157,11 @@ module.exports = {
   getCoachStudents,
   getCoachStudent,
   submitCoachReview,
+  generateTeachingOutline,
   getCoachReviewDraft,
   getStudentExplanation,
   getOperationContent,
+  getProductSuggestions,
   trackEvent,
   submitFeedback
 };

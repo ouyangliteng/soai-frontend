@@ -8,6 +8,7 @@
     "pages/feedback/feedback",
     "pages/coach/coach",
     "pages/coach-student/coach-student",
+    "pages/teaching-outline/teaching-outline",
     "pages/trends/trends",
     "pages/profile/profile"
   ],

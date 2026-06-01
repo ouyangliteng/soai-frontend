@@ -13,6 +13,7 @@
       <view class="tag">{{latestReport.summary.overallScore}} 分</view>
     </view>
     <view class="btn btn-primary" style="margin-top: 24rpx;" data-id="{{latestReport.id}}" bindtap="openReport">查看报告</view>
+    <view class="btn btn-secondary" style="margin-top: 18rpx;" data-id="{{latestReport.id}}" bindtap="openTeachingOutline">生成阶段教学大纲</view>
   </view>
 
   <view class="section-title">最近 5 次趋势</view>
@@ -52,4 +53,3 @@
     <view class="btn btn-secondary" style="margin-top: 20rpx;" data-id="{{item.id}}" bindtap="openReport">查看</view>
   </view>
 </view>
-

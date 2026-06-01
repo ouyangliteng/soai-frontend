@@ -82,6 +82,28 @@
     <view class="list-item" wx:for="{{report.nextTrainingFocus}}" wx:key="*this">{{index + 1}}. {{item}}</view>
   </view>
 
+  <view class="section-title" wx:if="{{productSuggestions}}">训练装备知识</view>
+  <view class="card" wx:if="{{productSuggestions}}">
+    <view class="card-title">{{productSuggestions.title}}</view>
+    <view class="muted" style="margin-top: 14rpx;">{{productSuggestions.summary}}</view>
+  </view>
+  <view class="card product-card" wx:for="{{productSuggestions.items}}" wx:key="id">
+    <view class="row">
+      <view>
+        <view class="card-title">{{item.productName}}</view>
+        <view class="muted">{{item.category}}</view>
+      </view>
+      <view class="tag">{{item.ctaLabel}}</view>
+    </view>
+    <view class="muted" style="margin-top: 16rpx;">{{item.scenario}}</view>
+    <view class="divider"></view>
+    <view class="small">关联原因：{{item.whyRelevant}}</view>
+    <view class="knowledge-list">
+      <view wx:for="{{item.knowledgePoints}}" wx:for-item="point" wx:key="*this">{{point}}</view>
+    </view>
+    <view class="small caution">边界：{{item.caution}}</view>
+  </view>
+
   <view class="section-title">教练复核</view>
   <view class="card">
     <view class="row">
@@ -96,6 +118,7 @@
     <view class="field-label" style="margin-top: 22rpx;">教练复核意见</view>
     <textarea class="textarea" value="{{coachComment}}" bindinput="onCoachComment" placeholder="输入教练复核意见"></textarea>
     <view class="btn btn-primary" style="margin-top: 18rpx;" bindtap="saveReview">提交复核意见</view>
+    <view class="btn btn-secondary" style="margin-top: 18rpx;" bindtap="goTeachingOutline">生成阶段教学大纲</view>
   </view>
 
   <view class="section-title">内测反馈</view>
