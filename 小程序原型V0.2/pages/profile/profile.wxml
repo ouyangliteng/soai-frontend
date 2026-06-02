@@ -31,6 +31,17 @@
       <view>联系电话</view>
       <view>{{coach.phone || '未填写'}}</view>
     </view>
+    <view class="divider"></view>
+    <view class="field">
+      <view class="field-label">所属俱乐部</view>
+      <input class="input" value="{{coachForm.clubName}}" data-field="clubName" bindinput="onCoachInput" placeholder="请输入教练所属俱乐部" />
+    </view>
+    <view class="field">
+      <view class="field-label">联系电话</view>
+      <input class="input" value="{{coachForm.phone}}" data-field="phone" bindinput="onCoachInput" placeholder="请输入联系电话" />
+    </view>
+    <view class="muted" style="margin-top: 18rpx;">保存后，学员绑定教练时会看到新的俱乐部信息；已绑定该教练的学员资料也会同步更新。</view>
+    <view class="btn btn-primary" style="margin-top: 24rpx;" bindtap="saveCoach">保存教练资料</view>
   </view>
 
   <view class="card" wx:if="{{role === 'student'}}">

@@ -5,6 +5,7 @@ Page({
     role: "student",
     coachStudents: [],
     coachStats: {},
+    pendingReports: [],
     profile: {},
     completion: 0,
     latestReport: null,
@@ -22,7 +23,8 @@ Page({
         this.setData({
           role: "coach",
           coachStudents: dashboard.students || [],
-          coachStats: dashboard.stats || {}
+          coachStats: dashboard.stats || {},
+          pendingReports: dashboard.pendingReports || []
         });
         return;
       }

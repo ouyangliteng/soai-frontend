@@ -1,83 +1,59 @@
 <view class="page">
-  <view class="hero">
-    <view class="hero-title">教练工作台</view>
-    <view class="hero-subtitle">查看名下学员训练报告、阶段计划和赛事安排。</view>
+  <view class="hero feed-hero">
+    <view>
+      <view class="hero-title">SOAI 首页</view>
+      <view class="hero-subtitle">赛事动态、业内新闻和训练科技观察，按微博信息流形式持续更新。</view>
+    </view>
+    <view class="feed-role">{{role === 'coach' ? '教练端' : '学员端'}}</view>
   </view>
 
-  <view class="coach-profile-card">
-    <view class="coach-avatar">{{coach.name ? coach.name.slice(0, 1) : '教'}}</view>
-    <view style="flex: 1;">
-      <view class="card-title">{{coach.name || '教练账号'}}</view>
-      <view class="muted">{{coach.clubName || '未绑定俱乐部'}}</view>
-      <view class="small" style="margin-top: 8rpx;">{{coach.loginType === 'company_wechat' ? '公司微信号' : '教练个人微信'}} · {{coach.verified ? '已认证' : '待认证'}}</view>
+  <view class="quick-actions">
+    <view class="quick-action" bindtap="goTraining">
+      <view class="quick-title">进入训练</view>
+      <view class="quick-subtitle">{{role === 'coach' ? '学员报告与训练计划' : '上传视频与查看成绩'}}</view>
     </view>
-    <view class="tag">教练端</view>
-  </view>
-
-  <view class="stats-grid">
-    <view class="stat-card">
-      <view class="stat-value">{{stats.pendingReviewCount}}</view>
-      <view class="stat-label">待复核</view>
-    </view>
-    <view class="stat-card">
-      <view class="stat-value">{{stats.highRiskCount}}</view>
-      <view class="stat-label">风险报告</view>
-    </view>
-    <view class="stat-card">
-      <view class="stat-value">{{stats.reviewedTodayCount}}</view>
-      <view class="stat-label">今日已复核</view>
-    </view>
-    <view class="stat-card">
-      <view class="stat-value">{{stats.activeStudentCount}}</view>
-      <view class="stat-label">活跃学员</view>
-    </view>
-    <view class="stat-card">
-      <view class="stat-value">{{stats.activePlanCount || 0}}</view>
-      <view class="stat-label">阶段计划</view>
+    <view class="quick-action" bindtap="goEvents">
+      <view class="quick-title">赛事入口</view>
+      <view class="quick-subtitle">赛事筛选与安排</view>
     </view>
   </view>
 
-  <view class="section-title">待复核报告</view>
-  <view class="card" wx:for="{{pendingReports}}" wx:key="id">
-    <view class="row">
-      <view>
-        <view class="card-title">{{item.studentName}}</view>
-        <view class="muted">{{item.currentLevel}} · {{item.trainingDate}}</view>
-      </view>
-      <view class="tag {{item.riskLevel === 'low' ? '' : 'tag-warning'}}">{{item.riskLevel}}</view>
-    </view>
-    <view class="divider"></view>
-    <view class="row">
-      <view class="muted">{{item.conclusion}}</view>
-      <view class="score-pill">{{item.score}}</view>
-    </view>
-    <view class="btn btn-primary" style="margin-top: 24rpx;" data-id="{{item.id}}" bindtap="openReport">复核报告</view>
+  <view class="feed-tabs">
+    <view
+      class="feed-tab {{filter === item.key ? 'active' : ''}}"
+      wx:for="{{filterTabs}}"
+      wx:key="key"
+      data-filter="{{item.key}}"
+      bindtap="changeFilter"
+    >{{item.label}}</view>
   </view>
 
-  <view class="card" wx:if="{{pendingReports.length === 0}}">
-    <view class="card-title">暂无待复核报告</view>
-    <view class="muted">新的训练报告生成后，会在这里按风险优先级展示。</view>
+  <view class="feed-toolbar">
+    <view class="muted">信息流模拟抓取源：赛事日历、行业观察、教学科技动态</view>
+    <view class="refresh-btn" bindtap="refreshFeed">刷新</view>
   </view>
 
-  <view class="section-title">学员训练情况</view>
-  <view class="card" wx:for="{{students}}" wx:key="id">
-    <view class="row">
-      <view class="student-row-left">
-        <image class="student-avatar" wx:if="{{item.avatarUrl}}" src="{{item.avatarUrl}}" mode="aspectFill"></image>
-        <view class="student-avatar avatar-empty" wx:else>{{item.name ? item.name.slice(0, 1) : '学'}}</view>
-      </view>
+  <view class="feed-card" wx:for="{{visibleFeed}}" wx:key="id">
+    <view class="feed-head">
+      <view class="source-avatar">{{item.sourceInitial}}</view>
       <view style="flex: 1;">
-        <view class="card-title">{{item.name}}</view>
-        <view class="muted">{{item.currentLevel}} · 最近 {{item.latestTrainingDate}}</view>
+        <view class="source-name">{{item.source}}</view>
+        <view class="feed-time">{{item.timeText}} · {{item.type}}</view>
       </view>
-      <view class="tag">{{item.latestScore}} 分</view>
+      <view class="feed-type {{item.type === '赛事' ? 'event' : 'news'}}">{{item.type}}</view>
     </view>
-    <view class="student-meta-row">
-      <view class="mini-tag">待复核 {{item.pendingReviewCount}}</view>
-      <view class="mini-tag">训练计划 {{item.planCount}}</view>
-      <view class="mini-tag">最近得分 {{item.latestScore}}</view>
+
+    <view class="feed-title">{{item.title}}</view>
+    <view class="feed-summary">{{item.summary}}</view>
+
+    <view class="feed-tags">
+      <view class="feed-tag" wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this">#{{tag}}</view>
     </view>
-    <view class="muted" style="margin-top: 18rpx;">{{item.trendText}}</view>
-    <view class="btn btn-secondary" style="margin-top: 24rpx;" data-id="{{item.id}}" bindtap="openStudent">查看学员详情</view>
+
+    <view class="feed-actions">
+      <view>转发 {{item.stats.repost}}</view>
+      <view>评论 {{item.stats.comment}}</view>
+      <view>点赞 {{item.stats.like}}</view>
+    </view>
   </view>
 </view>

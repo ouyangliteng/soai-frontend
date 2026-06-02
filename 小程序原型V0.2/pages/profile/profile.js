@@ -4,6 +4,7 @@ Page({
   data: {
     role: "student",
     coach: {},
+    coachForm: {},
     form: {},
     dataMode: "local",
     coaches: [],
@@ -16,9 +17,11 @@ Page({
       dataService.trackEvent("profile_view", { page: "profile" });
       const session = dataService.getCurrentSession();
       if (session.role === "coach") {
+        const coach = dataService.getCurrentCoach();
         this.setData({
           role: "coach",
-          coach: dataService.getCurrentCoach(),
+          coach,
+          coachForm: { ...coach },
           dataMode: dataService.getMode()
         });
         return;
@@ -43,6 +46,13 @@ Page({
     const field = event.currentTarget.dataset.field;
     this.setData({
       [`form.${field}`]: event.detail.value
+    });
+  },
+
+  onCoachInput(event) {
+    const field = event.currentTarget.dataset.field;
+    this.setData({
+      [`coachForm.${field}`]: event.detail.value
     });
   },
 
@@ -100,6 +110,31 @@ Page({
         title: "已保存",
         icon: "success"
       });
+    } catch (error) {
+      wx.showToast({ title: error.message || "保存失败", icon: "none" });
+    }
+  },
+
+  async saveCoach() {
+    const { coachForm } = this.data;
+    if (!coachForm.clubName) {
+      wx.showToast({ title: "请填写所属俱乐部", icon: "none" });
+      return;
+    }
+
+    try {
+      const coach = await dataService.saveCoachProfile(coachForm);
+      this.setData({
+        coach,
+        coachForm: { ...coach }
+      });
+      dataService.trackEvent("coach_profile_save_success", {
+        page: "profile",
+        properties: {
+          hasClub: Boolean(coach.clubName)
+        }
+      });
+      wx.showToast({ title: "已保存", icon: "success" });
     } catch (error) {
       wx.showToast({ title: error.message || "保存失败", icon: "none" });
     }

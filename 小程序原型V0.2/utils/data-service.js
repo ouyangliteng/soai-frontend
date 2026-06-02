@@ -31,6 +31,11 @@ function getCurrentCoach() {
   return store.getCurrentCoach();
 }
 
+async function saveCoachProfile(profile = {}) {
+  if (!isApiMode()) return store.saveCoachProfile(profile);
+  return store.saveCoachProfile(profile);
+}
+
 async function loginAsStudent(payload = {}) {
   if (!isApiMode()) return store.loginAsStudent(payload);
   return store.loginAsStudent(payload);
@@ -377,6 +382,7 @@ module.exports = {
   getCurrentSession,
   getCoaches,
   getCurrentCoach,
+  saveCoachProfile,
   loginAsStudent,
   loginAsCoach,
   getProfileCompletion,

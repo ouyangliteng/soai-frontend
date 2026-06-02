@@ -24,6 +24,28 @@
       </view>
     </view>
 
+    <view class="section-title">待复核报告</view>
+    <view class="card" wx:for="{{pendingReports}}" wx:key="id">
+      <view class="row">
+        <view>
+          <view class="card-title">{{item.studentName}}</view>
+          <view class="muted">{{item.currentLevel}} · {{item.trainingDate}}</view>
+        </view>
+        <view class="tag {{item.riskLevel === 'low' ? '' : 'tag-warning'}}">{{item.riskLevel}}</view>
+      </view>
+      <view class="divider"></view>
+      <view class="row">
+        <view class="muted">{{item.conclusion}}</view>
+        <view class="score-pill">{{item.score}}</view>
+      </view>
+      <view class="btn btn-primary" style="margin-top: 24rpx;" data-id="{{item.id}}" bindtap="openCoachReport">复核报告</view>
+    </view>
+
+    <view class="card" wx:if="{{pendingReports.length === 0}}">
+      <view class="card-title">暂无待复核报告</view>
+      <view class="muted">新的训练报告生成后，会在这里按风险优先级展示。</view>
+    </view>
+
     <view class="section-title">基础训练情况</view>
     <view class="card" wx:for="{{coachStudents}}" wx:key="id">
       <view class="row">
@@ -52,7 +74,7 @@
     <view class="hero-title">AI 训练分析</view>
     <view class="hero-subtitle">上传本次骑乘视频，生成问题点、风险点、进步和下次训练重点。</view>
   </view>
-  <view class="btn btn-ghost" style="margin-top: 18rpx;" bindtap="goRoleSelect">教练登录入口</view>
+  <view class="btn btn-ghost" style="margin-top: 18rpx;" bindtap="goRoleSelect">切换登录身份</view>
 
   <view class="card">
     <view class="row">

@@ -62,6 +62,14 @@
   font-weight: 700;
 }
 
+.score-pill {
+  min-width: 70rpx;
+  text-align: right;
+  color: #0f67ff;
+  font-size: 38rpx;
+  font-weight: 800;
+}
+
 .mini-chart {
   display: flex;
   align-items: flex-end;

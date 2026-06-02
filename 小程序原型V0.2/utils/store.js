@@ -294,6 +294,39 @@ function getCurrentCoach() {
   return getCoaches().find((coach) => coach.id === session.coachId) || seedCoach;
 }
 
+function saveCoachProfile(profile = {}) {
+  const previousCoach = getCurrentCoach();
+  const nextCoach = {
+    ...previousCoach,
+    name: profile.name || previousCoach.name,
+    phone: profile.phone || "",
+    clubName: profile.clubName || "",
+    updatedAt: new Date().toISOString()
+  };
+  saveCoaches(upsertById(getCoaches(), nextCoach));
+
+  const nextStudents = getStudents().map((student) => {
+    if (student.coachId !== nextCoach.id) return student;
+    return {
+      ...student,
+      coachName: nextCoach.name,
+      clubName: nextCoach.clubName
+    };
+  });
+  saveStudents(nextStudents);
+
+  const currentProfile = wx.getStorageSync(PROFILE_KEY);
+  if (currentProfile && currentProfile.coachId === nextCoach.id) {
+    wx.setStorageSync(PROFILE_KEY, {
+      ...currentProfile,
+      coachName: nextCoach.name,
+      clubName: nextCoach.clubName
+    });
+  }
+
+  return nextCoach;
+}
+
 function saveCoaches(coaches) {
   wx.setStorageSync(COACHES_KEY, coaches);
 }
@@ -621,6 +654,7 @@ module.exports = {
   getCurrentSession,
   getCoaches,
   getCurrentCoach,
+  saveCoachProfile,
   getStudents,
   getProfile,
   saveProfile,

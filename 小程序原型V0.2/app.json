@@ -28,7 +28,7 @@
     "list": [
       {
         "pagePath": "pages/coach/coach",
-        "text": "教练"
+        "text": "首页"
       },
       {
         "pagePath": "pages/home/home",
