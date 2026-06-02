@@ -3,9 +3,12 @@ const { spawn } = require("child_process");
 const http = require("http");
 const path = require("path");
 
+const POSE_TEST_PORT = 18793;
+const POSE_TEST_URL = `http://127.0.0.1:${POSE_TEST_PORT}`;
+
 process.env.SOAI_POSE_PROVIDER = "http";
 process.env.SOAI_POSE_MODEL_PROVIDER = "synthetic";
-process.env.SOAI_POSE_SERVICE_URL = "http://127.0.0.1:8793";
+process.env.SOAI_POSE_SERVICE_URL = POSE_TEST_URL;
 
 const { createServer } = require("../src/server");
 
@@ -15,19 +18,19 @@ async function main() {
     "--host",
     "127.0.0.1",
     "--port",
-    "8793"
+    String(POSE_TEST_PORT)
   ], {
     stdio: ["ignore", "pipe", "pipe"]
   });
 
   try {
-    await waitForHealth("http://127.0.0.1:8793/health");
-    const providerStatus = await directRequest("http://127.0.0.1:8793/v1/pose/providers");
+    await waitForHealth(`${POSE_TEST_URL}/health`);
+    const providerStatus = await directRequest(`${POSE_TEST_URL}/v1/pose/providers`);
     assert.ok(providerStatus.providers.some((item) => item.provider === "synthetic" && item.ready));
     assert.ok(providerStatus.providers.some((item) => item.provider === "yolo-pose" && item.missing.includes("YOLO_POSE_MODEL_PATH")));
     assert.ok(providerStatus.providers.some((item) => item.provider === "rtmpose" && item.missing.includes("RTMPOSE_CONFIG_PATH")));
 
-    const detectSample = await directRequest("http://127.0.0.1:8793/v1/pose/detect", {
+    const detectSample = await directRequest(`${POSE_TEST_URL}/v1/pose/detect`, {
       taskId: "task_contract",
       videoId: "video_contract",
       provider: "synthetic",

@@ -1,5 +1,7 @@
 FROM python:3.11-slim
 
+ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cpu
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     POSE_HOST=0.0.0.0 \
@@ -15,6 +17,7 @@ RUN apt-get update \
 
 COPY requirements-base.txt requirements-yolo.txt ./
 RUN pip install --no-cache-dir --upgrade pip wheel setuptools \
+    && pip install --no-cache-dir --index-url "${TORCH_INDEX_URL}" torch torchvision \
     && pip install --no-cache-dir -r requirements-base.txt -r requirements-yolo.txt
 
 COPY pose_service.py ./pose_service.py
