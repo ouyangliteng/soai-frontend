@@ -68,8 +68,12 @@ Page({
   getStatusText(status) {
     const map = {
       queued: "排队中",
+      extracting_frames: "抽取视频帧",
+      detecting_pose: "识别人体关键点",
+      applying_rules: "应用马术规则",
       analyzing: "AI 分析中",
       generating_report: "生成报告中",
+      waiting_coach_review: "等待教练复核",
       completed: "分析完成",
       failed: "分析失败"
     };

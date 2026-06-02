@@ -1217,3 +1217,39 @@
 .caution {
   color: #b54708;
 }
+
+.annotation-card {
+  margin-top: 18rpx;
+  padding: 20rpx;
+  border: 1rpx solid #e6ebf2;
+  border-radius: 14rpx;
+  background: #f8fbff;
+}
+
+.annotation-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+
+.annotation-label {
+  padding: 10rpx 14rpx;
+  border: 1rpx solid #d9e0ea;
+  border-radius: 999rpx;
+  color: #344054;
+  background: #ffffff;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.annotation-label.active {
+  color: #ffffff;
+  border-color: #0f67ff;
+  background: #0f67ff;
+}
+
+.annotation-textarea {
+  margin-top: 18rpx;
+  min-height: 130rpx;
+}

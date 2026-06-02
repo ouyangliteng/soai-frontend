@@ -6,6 +6,14 @@ Page({
     report: null,
     coachComment: "",
     coachFocusText: "",
+    annotationLabels: [
+      { value: "accurate", label: "准确" },
+      { value: "partially_accurate", label: "部分准确" },
+      { value: "inaccurate", label: "不准确" },
+      { value: "bad_angle", label: "角度不足" },
+      { value: "needs_onsite_review", label: "现场判断" }
+    ],
+    reviewAnnotations: [],
     displayCoachFocusItems: [],
     teachingOutline: null,
     outlinePreviewWeeks: [],
@@ -28,6 +36,7 @@ Page({
         report,
         teachingOutline,
         outlinePreviewWeeks: buildOutlinePreviewWeeks(teachingOutline),
+        reviewAnnotations: buildReviewAnnotations(report),
         displayCoachFocusItems: buildDisplayCoachFocusItems(report),
         poseAnalytics: buildPoseAnalytics(report),
         coachComment: report && report.coachReview ? report.coachReview : "",
@@ -83,8 +92,26 @@ Page({
     });
   },
 
+  onAnnotationLabel(event) {
+    const index = Number(event.currentTarget.dataset.index);
+    const label = event.currentTarget.dataset.label;
+    const reviewAnnotations = this.data.reviewAnnotations.map((item, currentIndex) => (
+      currentIndex === index ? { ...item, label } : item
+    ));
+    this.setData({ reviewAnnotations });
+  },
+
+  onAnnotationComment(event) {
+    const index = Number(event.currentTarget.dataset.index);
+    const comment = event.detail.value;
+    const reviewAnnotations = this.data.reviewAnnotations.map((item, currentIndex) => (
+      currentIndex === index ? { ...item, comment } : item
+    ));
+    this.setData({ reviewAnnotations });
+  },
+
   async saveReview() {
-    const { report, coachComment, coachFocusText } = this.data;
+    const { report, coachComment, coachFocusText, reviewAnnotations } = this.data;
     if (this.data.role !== "coach") return;
     if (!coachComment) {
       wx.showToast({ title: "请输入复核意见", icon: "none" });
@@ -96,7 +123,7 @@ Page({
       .map((item) => item.trim())
       .filter(Boolean);
     try {
-      const nextReport = await dataService.saveCoachReview(report.id, coachComment, focusItems);
+      const nextReport = await dataService.saveCoachReview(report.id, coachComment, focusItems, reviewAnnotations);
       const teachingOutline = await loadReportTeachingOutline(nextReport);
       dataService.trackEvent("coach_review_submit", {
         page: "report",
@@ -109,6 +136,7 @@ Page({
         report: nextReport,
         teachingOutline,
         outlinePreviewWeeks: buildOutlinePreviewWeeks(teachingOutline),
+        reviewAnnotations: buildReviewAnnotations(nextReport),
         displayCoachFocusItems: buildDisplayCoachFocusItems(nextReport),
         poseAnalytics: buildPoseAnalytics(nextReport)
       });
@@ -178,6 +206,30 @@ function buildDisplayCoachFocusItems(report) {
   if (!report) return [];
   if (report.coachFocusItems && report.coachFocusItems.length) return report.coachFocusItems;
   return report.nextTrainingFocus || [];
+}
+
+function buildReviewAnnotations(report) {
+  if (!report) return [];
+  const ruleItems = report.ruleResults && report.ruleResults.length
+    ? report.ruleResults
+    : (report.problemPoints || []).map((point, index) => ({
+      ruleResultId: point.ruleResultId || `problem_${index + 1}`,
+      metricName: point.title,
+      explanation: point.detail,
+      timeRange: point.evidence || "",
+      severity: point.severity || "medium"
+    }));
+  return ruleItems.map((item) => ({
+    ruleResultId: item.ruleResultId,
+    metricName: item.metricName,
+    explanation: item.explanation,
+    timeRange: item.timeRange,
+    label: "needs_onsite_review",
+    correctedProblem: "",
+    correctedSuggestion: "",
+    comment: "",
+    syncToStudent: true
+  }));
 }
 
 function buildOutlinePreviewWeeks(outline) {

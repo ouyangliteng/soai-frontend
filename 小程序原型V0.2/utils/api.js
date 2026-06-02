@@ -1,4 +1,4 @@
-const DEFAULT_BASE_URL = "http://127.0.0.1:8787";
+const DEFAULT_BASE_URL = "https://api.soai.yun";
 
 function getBaseUrl() {
   return wx.getStorageSync("soai_api_base_url") || DEFAULT_BASE_URL;

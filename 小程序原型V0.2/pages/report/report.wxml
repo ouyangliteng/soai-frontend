@@ -21,7 +21,7 @@
 
   <view class="section-title">测试结果</view>
   <view class="analytics-result asset-result" wx:if="{{poseAnalytics}}">
-    <image class="analytics-reference" src="/assets/report-analytics-reference.png" mode="aspectFill"></image>
+    <image class="analytics-reference" src="/assets/report-analytics-reference.jpg" mode="aspectFill"></image>
 
     <view class="asset-tracking-panel">
       <view class="asset-label">Frames</view>
@@ -228,6 +228,25 @@
     <textarea class="textarea" value="{{coachFocusText}}" bindinput="onCoachFocus" placeholder="例如：轻快步节奏、小腿稳定、转弯前视线"></textarea>
     <view class="field-label" style="margin-top: 22rpx;">教练复核意见</view>
     <textarea class="textarea" value="{{coachComment}}" bindinput="onCoachComment" placeholder="输入教练复核意见"></textarea>
+    <view class="divider"></view>
+    <view class="field-label">AI 判断准确性标注</view>
+    <view class="annotation-card" wx:for="{{reviewAnnotations}}" wx:for-item="annotation" wx:for-index="annotationIndex" wx:key="ruleResultId">
+      <view class="card-title">{{annotation.metricName}}</view>
+      <view class="muted" style="margin-top: 10rpx;">{{annotation.explanation}}</view>
+      <view class="small" style="margin-top: 8rpx;">证据：{{annotation.timeRange || '暂无时间段'}}</view>
+      <view class="annotation-labels">
+        <view
+          wx:for="{{annotationLabels}}"
+          wx:for-item="label"
+          wx:key="value"
+          class="annotation-label {{annotation.label === label.value ? 'active' : ''}}"
+          data-index="{{annotationIndex}}"
+          data-label="{{label.value}}"
+          bindtap="onAnnotationLabel"
+        >{{label.label}}</view>
+      </view>
+      <textarea class="textarea annotation-textarea" value="{{annotation.comment}}" data-index="{{annotationIndex}}" bindinput="onAnnotationComment" placeholder="可补充：哪里准确、哪里需要修正、是否受视频角度影响"></textarea>
+    </view>
     <view class="btn btn-primary" style="margin-top: 18rpx;" bindtap="saveReview">提交复核意见</view>
     <view class="btn btn-secondary" style="margin-top: 18rpx;" bindtap="goTeachingOutline">生成阶段教学大纲</view>
   </view>

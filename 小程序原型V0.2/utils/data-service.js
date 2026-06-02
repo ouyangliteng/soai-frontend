@@ -115,13 +115,16 @@ async function createUploadAndAnalysisTask(video) {
     sizeMb: video.sizeMb,
     durationSec: video.durationSec,
     format: video.format,
+    cameraAngle: video.cameraAngle || "left",
     analysisConsent: Boolean(video.analysisConsent),
     caseConsent: Boolean(video.caseConsent)
   });
+  await uploadVideoFile(uploadToken.uploadUrl, video.path);
   await api.updateUploadStatus(uploadToken.videoId, {
     uploadStatus: "uploaded",
     uploadProgress: 100,
-    uploadError: ""
+    uploadError: "",
+    storageUrl: uploadToken.storageUrl
   });
   const taskRes = await api.createAnalysisTask({
     videoId: uploadToken.videoId,
@@ -137,6 +140,28 @@ async function createUploadAndAnalysisTask(video) {
   };
   store.saveActiveTask(task);
   return task;
+}
+
+function uploadVideoFile(uploadUrl, filePath) {
+  return new Promise((resolve, reject) => {
+    if (!uploadUrl || !filePath) {
+      reject(new Error("缺少视频上传地址或本地文件路径"));
+      return;
+    }
+    wx.uploadFile({
+      url: uploadUrl,
+      filePath,
+      name: "file",
+      success: (res) => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(res);
+          return;
+        }
+        reject(new Error(`视频上传失败：${res.statusCode}`));
+      },
+      fail: reject
+    });
+  });
 }
 
 async function advanceAnalysisTask() {
@@ -217,12 +242,13 @@ async function getCoachStudentDetail(studentId) {
   return normalizeCoachStudent(detail);
 }
 
-async function saveCoachReview(reportId, comment, focusItems = []) {
+async function saveCoachReview(reportId, comment, focusItems = [], annotations = []) {
   if (!isApiMode()) return store.saveCoachReview(reportId, comment, focusItems);
   const res = await api.submitCoachReview(reportId, {
     status: "reviewed",
     comment,
     focusItems,
+    annotations,
     assignmentComment: comment
   });
   return normalizeReport(res.report);

@@ -1,4 +1,5 @@
-const { db, createReportFromTask } = require("./data");
+const { db, createReportFromAnalysis, saveDb } = require("./data");
+const { runAnalysisPipeline } = require("./analysis-pipeline");
 
 function getTrend(studentId, limit = 5) {
   const reports = db.reports
@@ -34,13 +35,24 @@ function getTrend(studentId, limit = 5) {
   };
 }
 
-function completeTask(task) {
+async function completeTask(task) {
   if (task.status === "completed") return task;
-  const report = createReportFromTask(task);
-  task.status = "completed";
-  task.progressText = "报告已生成";
-  task.reportId = report.id;
-  task.updatedAt = new Date().toISOString();
+  const video = db.videos.find((item) => item.id === task.videoId);
+  if (!video) {
+    task.status = "failed";
+    task.progressText = "未找到视频记录";
+    task.errorCode = "VIDEO_NOT_FOUND";
+    task.updatedAt = new Date().toISOString();
+    saveDb();
+    return task;
+  }
+  await runAnalysisPipeline({
+    db,
+    task,
+    video,
+    createReport: createReportFromAnalysis
+  });
+  saveDb();
   return task;
 }
 
@@ -48,11 +60,18 @@ function getTaskView(task) {
   return {
     taskId: task.id,
     status: task.status,
+    progress: task.progress || 0,
     progressText: task.progressText,
     reportId: task.reportId || "",
     retryCount: task.retryCount,
     errorCode: task.errorCode,
     errorMessage: task.errorMessage,
+    currentStage: task.status,
+    analysisSummary: {
+      frameCount: task.frames ? task.frames.length : 0,
+      poseFrameCount: task.poseDetections ? task.poseDetections.length : 0,
+      ruleResultCount: task.ruleResults ? task.ruleResults.length : 0
+    },
     createdAt: task.createdAt,
     updatedAt: task.updatedAt
   };
@@ -163,6 +182,9 @@ function saveCoachReview(reportId, payload) {
   report.coachReviewedAt = review.createdAt;
   db.reviews.push(review);
 
+  const annotations = normalizeAnnotations(payload.annotations || payload.ruleAnnotations || [], review, report);
+  db.reviewAnnotations.push(...annotations);
+
   if (review.trainingFocus.length > 0) {
     db.assignments.push({
       id: `assignment_${Date.now()}`,
@@ -176,7 +198,30 @@ function saveCoachReview(reportId, payload) {
     });
   }
 
-  return { report, review };
+  saveDb();
+  return { report, review, annotations };
+}
+
+function normalizeAnnotations(items, review, report) {
+  if (!Array.isArray(items)) return [];
+  return items.map((item, index) => ({
+    id: `annotation_${Date.now()}_${index + 1}`,
+    reviewId: review.id,
+    reportId: report.id,
+    ruleResultId: item.ruleResultId || item.problemPointId || "",
+    coachId: review.coachId,
+    label: normalizeAnnotationLabel(item.label),
+    correctedProblem: item.correctedProblem || "",
+    correctedSuggestion: item.correctedSuggestion || "",
+    comment: item.comment || "",
+    syncToStudent: item.syncToStudent !== false,
+    createdAt: review.createdAt
+  }));
+}
+
+function normalizeAnnotationLabel(label) {
+  const allowed = new Set(["accurate", "partially_accurate", "inaccurate", "bad_angle", "needs_onsite_review"]);
+  return allowed.has(label) ? label : "needs_onsite_review";
 }
 
 function isToday(value) {

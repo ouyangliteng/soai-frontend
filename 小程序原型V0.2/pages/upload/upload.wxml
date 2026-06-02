@@ -21,7 +21,7 @@
     <view class="list-item">
       <view class="row">
         <view class="muted">建议大小</view>
-        <view class="small">不超过 300 MB</view>
+        <view class="small">不超过 150 MB</view>
       </view>
     </view>
     <view class="list-item">

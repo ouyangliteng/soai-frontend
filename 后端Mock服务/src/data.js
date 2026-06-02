@@ -3,8 +3,15 @@ const {
   generateTrainingReport,
   validateTrainingReport
 } = require("./ai-agents");
+const fs = require("fs");
+const path = require("path");
 
 const now = () => new Date().toISOString();
+const STORAGE_ROOT = process.env.SOAI_STORAGE_ROOT || path.join(__dirname, "..", "storage");
+const DB_FILE = process.env.SOAI_DB_FILE || path.join(STORAGE_ROOT, "db", "soai-db.json");
+const PERSISTENCE_ENABLED = process.env.SOAI_PERSISTENCE_DISABLED !== "1" && (
+  process.env.NODE_ENV === "production" || Boolean(process.env.SOAI_DB_FILE)
+);
 
 const profile = {
   id: "student_001",
@@ -29,7 +36,10 @@ const db = {
   videos: [],
   tasks: [],
   reports: [],
+  poseDetections: [],
+  ruleResults: [],
   reviews: [],
+  reviewAnnotations: [],
   assignments: [],
   teachingOutlines: [],
   analyticsEvents: [],
@@ -44,6 +54,43 @@ function seed() {
     createReport("report_003", "video_seed_003", "task_seed_003", "2026-05-26", 81, 78, 83, 79, 1, "reviewed"),
     createReport("report_004", "video_seed_004", "task_seed_004", "2026-05-30", 82, 80, 84, 78, 1, "pending")
   );
+}
+
+function loadDb() {
+  if (!PERSISTENCE_ENABLED || !fs.existsSync(DB_FILE)) return;
+  try {
+    const saved = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+    Object.keys(db).forEach((key) => {
+      if (Object.prototype.hasOwnProperty.call(saved, key)) {
+        db[key] = saved[key];
+      }
+    });
+  } catch (error) {
+    console.warn(`SOAI DB 持久化文件读取失败，将使用种子数据：${error.message}`);
+  }
+}
+
+function saveDb() {
+  if (!PERSISTENCE_ENABLED) return;
+  fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
+  const tmpFile = `${DB_FILE}.tmp`;
+  fs.writeFileSync(tmpFile, JSON.stringify({
+    version: 1,
+    savedAt: now(),
+    profile: db.profile,
+    videos: db.videos,
+    tasks: db.tasks,
+    reports: db.reports,
+    poseDetections: db.poseDetections,
+    ruleResults: db.ruleResults,
+    reviews: db.reviews,
+    reviewAnnotations: db.reviewAnnotations,
+    assignments: db.assignments,
+    teachingOutlines: db.teachingOutlines,
+    analyticsEvents: db.analyticsEvents,
+    feedbackItems: db.feedbackItems
+  }, null, 2));
+  fs.renameSync(tmpFile, DB_FILE);
 }
 
 function createReport(id, videoId, taskId, trainingDate, overallScore, postureControl, rhythmControl, stability, riskCount, coachReviewStatus = "pending") {
@@ -101,7 +148,6 @@ function createReport(id, videoId, taskId, trainingDate, overallScore, postureCo
 }
 
 function createReportFromTask(task) {
-  const latest = db.reports[db.reports.length - 1];
   const video = db.videos.find((item) => item.id === task.videoId);
   const today = new Date();
   const trainingDate = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
@@ -143,6 +189,66 @@ function createReportFromTask(task) {
     createdAt: now()
   };
   db.reports.push(report);
+  saveDb();
+  return report;
+}
+
+function createReportFromAnalysis({ task, video, aiReport, poseSummary, frames, poseFrames, ruleResults }) {
+  const today = new Date();
+  const trainingDate = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  const report = {
+    id: `report_${Date.now()}`,
+    studentId: db.profile.id,
+    videoId: task.videoId,
+    taskId: task.id,
+    studentSnapshot: { ...db.profile },
+    summary: {
+      ...aiReport.summary,
+      trainingDate
+    },
+    scores: aiReport.scores,
+    problemPoints: aiReport.problemPoints,
+    riskPoints: aiReport.riskPoints,
+    improvements: aiReport.improvements,
+    nextTrainingFocus: aiReport.nextTrainingFocus,
+    trendSummary: aiReport.trendSummary,
+    limitations: aiReport.limitations,
+    poseSummary,
+    ruleResults,
+    frameSummary: {
+      frameCount: frames.length,
+      firstFrameAtMs: frames[0] ? frames[0].timestampMs : 0,
+      lastFrameAtMs: frames[frames.length - 1] ? frames[frames.length - 1].timestampMs : 0
+    },
+    videoPath: video ? video.storageUrl || video.fileUrl : "",
+    videoDurationSec: video ? video.durationSec : 0,
+    videoSizeMb: video ? video.sizeMb : 0,
+    videoExcerptStartSec: 0,
+    videoExcerptEndSec: video ? Math.min(60, video.durationSec || 60) : 60,
+    coachReviewStatus: "pending",
+    coachReview: "",
+    coachFocusItems: [],
+    createdAt: now()
+  };
+  db.poseDetections.push({
+    id: `pose_${task.id}`,
+    taskId: task.id,
+    videoId: task.videoId,
+    reportId: report.id,
+    frames: poseFrames,
+    summary: poseSummary,
+    createdAt: now()
+  });
+  db.ruleResults.push({
+    id: `rules_${task.id}`,
+    taskId: task.id,
+    videoId: task.videoId,
+    reportId: report.id,
+    items: ruleResults,
+    createdAt: now()
+  });
+  db.reports.push(report);
+  saveDb();
   return report;
 }
 
@@ -151,8 +257,11 @@ function pad(value) {
 }
 
 seed();
+loadDb();
 
 module.exports = {
   db,
-  createReportFromTask
+  createReportFromTask,
+  createReportFromAnalysis,
+  saveDb
 };

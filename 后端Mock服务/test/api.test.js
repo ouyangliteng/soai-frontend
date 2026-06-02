@@ -36,6 +36,17 @@ async function main() {
     });
     assert.ok(uploadToken.videoId);
 
+    const form = new FormData();
+    form.append("file", new Blob([Buffer.from("fake-video-bytes")], { type: "video/mp4" }), "training.mp4");
+    const uploadFileRes = await fetch(uploadToken.uploadUrl, {
+      method: "POST",
+      body: form
+    });
+    assert.strictEqual(uploadFileRes.status, 200);
+    const uploadFileJson = await uploadFileRes.json();
+    assert.strictEqual(uploadFileJson.success, true);
+    assert.ok(uploadFileJson.storageUrl);
+
     const uploadStatus = await request(baseUrl, "POST", `/api/videos/${uploadToken.videoId}/upload-status`, {
       uploadStatus: "uploaded",
       uploadProgress: 100,
@@ -52,12 +63,18 @@ async function main() {
     const task = await request(baseUrl, "GET", `/api/analysis/tasks/${taskCreated.taskId}`);
     assert.strictEqual(task.status, "completed");
     assert.ok(task.reportId);
+    assert.ok(task.analysisSummary.frameCount >= 30);
+    assert.ok(task.analysisSummary.poseFrameCount >= 30);
+    assert.ok(task.analysisSummary.ruleResultCount >= 5);
 
     const reportRes = await request(baseUrl, "GET", `/api/reports/${task.reportId}`);
     assert.strictEqual(reportRes.report.id, task.reportId);
     assert.ok(reportRes.report.problemPoints.length > 0);
     assert.ok(reportRes.report.nextTrainingFocus.length > 0);
     assert.ok(reportRes.report.limitations.length > 0);
+    assert.ok(reportRes.report.poseSummary.usableFrameRate >= 0.7);
+    assert.ok(reportRes.report.ruleResults.length >= 5);
+    assert.ok(reportRes.report.problemPoints[0].evidence.includes("视频中"));
 
     const aiDraft = await request(baseUrl, "POST", "/api/ai/report-draft", {});
     assert.strictEqual(aiDraft.validation.valid, true);
@@ -151,10 +168,23 @@ async function main() {
       status: "reviewed",
       comment: "AI 对上身稳定性的判断基本准确，下次加强轻快步节奏。",
       focusItems: ["轻快步节奏", "小腿稳定"],
-      assignmentComment: "下次训练前 10 分钟做轻快步节奏稳定练习。"
+      assignmentComment: "下次训练前 10 分钟做轻快步节奏稳定练习。",
+      annotations: [
+        {
+          ruleResultId: reportRes.report.ruleResults[0].ruleResultId,
+          label: "partially_accurate",
+          correctedProblem: "上身稳定需要结合马匹节奏再判断",
+          correctedSuggestion: "下次补充侧面固定机位视频。",
+          comment: "判断有参考价值，但视频角度仍需复核。"
+        }
+      ]
     });
     assert.strictEqual(review.success, true);
     assert.strictEqual(review.report.coachReviewStatus, "reviewed");
+    assert.strictEqual(review.annotations.length, 1);
+
+    const annotations = await request(baseUrl, "GET", `/api/coach/review-annotations?reportId=${task.reportId}`);
+    assert.ok(annotations.items.some((item) => item.label === "partially_accurate"));
 
     const studentDetail = await request(baseUrl, "GET", `/api/coach/students/${profileRes.profile.id}`);
     assert.ok(studentDetail.assignments.length >= 1);

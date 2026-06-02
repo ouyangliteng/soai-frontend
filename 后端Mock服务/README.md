@@ -45,6 +45,20 @@ http://localhost:8787
 curl http://localhost:8787/health
 ```
 
+生产部署到 `api.soai.yun` 参考：
+
+```text
+deploy/腾讯云部署清单.md
+deploy/ecosystem.config.cjs
+deploy/nginx-api.soai.yun.conf
+```
+
+小程序生产 API 默认地址为：
+
+```text
+https://api.soai.yun
+```
+
 ## 3. 测试
 
 ```bash
@@ -145,9 +159,10 @@ utils/api.js
 
 ## 6. 当前限制
 
-- 数据存在内存中，重启后恢复种子数据。
-- 分析任务查询时会立即通过本地 AI 规则生成报告，模拟 AI 分析完成。
-- AI 智能体当前是 deterministic 规则版本，不调用外部大模型。
-- 上传地址是 mock 地址，不接收真实视频文件。
+- 本地测试默认使用内存数据；生产环境 `NODE_ENV=production` 时会写入 `SOAI_DB_FILE` JSON 文件，适合第一轮马场内测留存资料、报告、批复和反馈。
+- JSON 文件持久化仍是内测级方案，正式多教练、多学员上线前应升级为 MySQL/PostgreSQL/MongoDB 等数据库。
+- 本地上传地址 `/mock-upload/{videoId}` 可接收真实视频文件，生产环境应替换为 COS/OSS 等对象存储直传地址。
+- 分析任务已经拆成抽帧、姿态识别、马术规则、报告生成阶段；未安装 ffmpeg 时会回退为带时间戳的帧元数据。
+- 姿态识别当前默认使用 SOAI 标准关键点适配器模拟输出，生产环境应将 `pose-service.js` 替换或配置为 RTMPose/YOLO-Pose 服务。
+- AI 报告基于结构化姿态和规则结果生成，当前不调用外部大模型；可在报告生成层接入 OpenAI 或国内可商用大模型做文本组织。
 - 没有登录、鉴权和多教练权限。
-- 没有真实 AI 视频理解能力。

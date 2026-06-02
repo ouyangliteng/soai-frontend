@@ -33,6 +33,8 @@ function buildReportInput({ profile, video, history }) {
         }
       ]
     },
+    poseSummary: null,
+    ruleResults: [],
     history: {
       lastReports: history.map((report) => ({
         trainingDate: report.summary.trainingDate,
@@ -54,13 +56,17 @@ function generateTrainingReport(input) {
   const confidenceLevel = cameraQuality === "high" ? "high" : "medium";
   const movement = input.videoAnalysis.detectedMovements[0];
   const risk = input.videoAnalysis.detectedRisks[0];
+  const ruleResults = input.ruleResults && input.ruleResults.length ? input.ruleResults : [];
+  const ruleScoreMap = Object.fromEntries(ruleResults.map((item) => [item.ruleId, item.score]));
+  const mainProblem = pickRule(ruleResults, ["upper_body_stability", "lower_leg_stability", "arm_aid"]) || null;
+  const mainRisk = pickRule(ruleResults, ["lower_leg_stability", "knee_grip", "left_right_symmetry"]) || null;
 
   const scores = {
-    postureControl: clamp(baseScore - 2),
+    postureControl: clamp(ruleScoreMap.upper_body_stability || baseScore - 2),
     rhythmControl: clamp(baseScore + 1),
-    stability: clamp(baseScore - 3),
-    aidAccuracy: clamp(baseScore - 4),
-    safetyAwareness: clamp(baseScore)
+    stability: clamp(ruleScoreMap.lower_leg_stability || baseScore - 3),
+    aidAccuracy: clamp(ruleScoreMap.arm_aid || baseScore - 4),
+    safetyAwareness: clamp(ruleScoreMap.knee_grip || baseScore)
   };
   const overallScore = Math.round(
     scores.postureControl * 0.25 +
@@ -80,19 +86,21 @@ function generateTrainingReport(input) {
     scores,
     problemPoints: [
       {
-        title: "快步阶段上身略前倾",
-        detail: "从视频可见，快步阶段上身重心略向前，可能影响骑坐稳定性。",
-        severity: "medium",
-        evidence: movement ? `视频中 ${movement.timeRange} 阶段较明显。` : "视频片段中可见该问题。",
-        suggestion: "下次训练中注意保持肩、髋、脚跟接近垂直线。"
+        ruleResultId: mainProblem ? mainProblem.ruleResultId : "",
+        title: mainProblem ? `${mainProblem.metricName}需关注` : "快步阶段上身略前倾",
+        detail: mainProblem ? mainProblem.explanation : "从视频可见，快步阶段上身重心略向前，可能影响骑坐稳定性。",
+        severity: mainProblem ? severityToReport(mainProblem.severity) : "medium",
+        evidence: mainProblem ? `视频中 ${mainProblem.timeRange} 阶段较明显。` : movement ? `视频中 ${movement.timeRange} 阶段较明显。` : "视频片段中可见该问题。",
+        suggestion: buildSuggestion(mainProblem ? mainProblem.ruleId : "upper_body_stability")
       }
     ],
     riskPoints: [
       {
-        title: "小腿位置稳定性需关注",
-        detail: "该表现可能影响扶助准确性，建议教练结合现场情况复核。",
-        riskLevel: "medium",
-        evidence: risk ? `视频中 ${risk.timeRange} 阶段较明显。` : "视频角度有限，建议教练复核。",
+        ruleResultId: mainRisk ? mainRisk.ruleResultId : "",
+        title: mainRisk ? `${mainRisk.metricName}风险需复核` : "小腿位置稳定性需关注",
+        detail: mainRisk ? mainRisk.explanation : "该表现可能影响扶助准确性，建议教练结合现场情况复核。",
+        riskLevel: mainRisk && mainRisk.severity === "high" ? "high" : "medium",
+        evidence: mainRisk ? `视频中 ${mainRisk.timeRange} 阶段较明显。` : risk ? `视频中 ${risk.timeRange} 阶段较明显。` : "视频角度有限，建议教练复核。",
         coachReviewRequired: true
       }
     ],
@@ -100,14 +108,18 @@ function generateTrainingReport(input) {
       ? ["相比上次，节奏控制更连续。", "转弯前视线方向更明确。"]
       : ["首次报告已建立训练基线，后续可通过趋势观察进步。"],
     nextTrainingFocus: [
-      "保持上身稳定，减少快步阶段前倾。",
-      "练习小腿位置稳定性。",
-      "转弯前提前看向行进方向。"
+      buildSuggestion("upper_body_stability"),
+      buildSuggestion("lower_leg_stability"),
+      buildSuggestion("arm_aid")
     ],
     trendSummary: buildTrendSummary(history, overallScore),
     limitations: [
-      "本次视频角度有限，部分腿部动作判断需教练复核。"
-    ]
+      input.poseSummary && input.poseSummary.usableFrameRate < 0.7
+        ? "本次可用姿态帧不足 70%，部分判断需教练重点复核。"
+        : "本次视频角度和遮挡仍会影响腿部与手部细节判断，需教练结合现场情况复核。"
+    ],
+    poseSummary: input.poseSummary || null,
+    ruleResults
   };
 }
 
@@ -259,6 +271,31 @@ function buildTrendSummary(history, currentScore) {
   const first = history[0].overallScore;
   const direction = currentScore >= first ? "提升" : "波动";
   return `最近 ${history.length + 1} 次训练中，总评分${direction}，节奏控制保持较好，上身稳定性仍需持续观察。`;
+}
+
+function pickRule(ruleResults, preferredRuleIds) {
+  const byPreference = preferredRuleIds
+    .map((ruleId) => ruleResults.find((item) => item.ruleId === ruleId && item.severity !== "low"))
+    .find(Boolean);
+  if (byPreference) return byPreference;
+  return ruleResults.slice().sort((a, b) => a.score - b.score)[0] || null;
+}
+
+function severityToReport(severity) {
+  if (severity === "high") return "high";
+  if (severity === "medium") return "medium";
+  return "low";
+}
+
+function buildSuggestion(ruleId) {
+  const map = {
+    upper_body_stability: "保持上身稳定，减少快步阶段前倾，优先确认肩、髋、脚跟接近垂直线。",
+    lower_leg_stability: "练习小腿位置稳定性，避免脚踝相对髋部过度前后漂移。",
+    knee_grip: "放松膝部夹持，优先保持骑坐深度和腿部自然贴靠。",
+    arm_aid: "保持手臂和前臂扶助连续，避免手部高度和肘角大幅波动。",
+    left_right_symmetry: "通过轻快步节奏练习观察左右骑坐对称性。"
+  };
+  return map[ruleId] || "下次训练中只抓 1 到 2 个重点，并由教练现场确认。";
 }
 
 function clamp(value) {

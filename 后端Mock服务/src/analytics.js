@@ -1,4 +1,4 @@
-const { db } = require("./data");
+const { db, saveDb } = require("./data");
 
 const allowedEvents = new Set([
   "profile_view",
@@ -44,6 +44,7 @@ function trackEvent(payload = {}) {
     occurredAt: payload.occurredAt || new Date().toISOString()
   };
   db.analyticsEvents.push(event);
+  saveDb();
   return { event };
 }
 
@@ -84,6 +85,7 @@ function submitFeedback(payload = {}) {
       rating: feedback.rating
     }
   });
+  saveDb();
   return feedback;
 }
 

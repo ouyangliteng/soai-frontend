@@ -1,6 +1,6 @@
 const http = require("http");
 const { URL } = require("url");
-const { db } = require("./data");
+const { db, saveDb } = require("./data");
 const {
   completeTask,
   getTaskView,
@@ -21,6 +21,7 @@ const {
 } = require("./ai-agents");
 const { getOperationsDashboard, getOperationsDailyReport } = require("./operations");
 const { getProductSuggestions } = require("./product-suggestions");
+const { createUploadTarget, saveUploadedVideo } = require("./storage");
 const {
   trackEvent,
   listEvents,
@@ -36,7 +37,27 @@ function createServer() {
 
     try {
       if (req.method === "OPTIONS") return send(res, 204, {});
-      if (req.method === "GET" && url.pathname === "/health") return send(res, 200, { ok: true, service: "soai-mock-api" });
+      if (req.method === "GET" && url.pathname === "/health") {
+        return send(res, 200, {
+          ok: true,
+          success: true,
+          service: "soai-api",
+          data: {
+            status: "ok",
+            storageProvider: process.env.SOAI_STORAGE_PROVIDER || "local",
+            poseProvider: process.env.SOAI_POSE_PROVIDER || "synthetic"
+          }
+        });
+      }
+
+      const mockUploadMatch = url.pathname.match(/^\/mock-upload\/([^/]+)$/);
+      if (req.method === "POST" && mockUploadMatch) {
+        const video = db.videos.find((item) => item.id === mockUploadMatch[1]);
+        if (!video) return sendError(res, 404, "VIDEO_NOT_FOUND", "未找到视频记录。");
+        await saveUploadedVideo(video, req);
+        saveDb();
+        return send(res, 200, { success: true, videoId: video.id, storageUrl: video.storageUrl });
+      }
 
       if (req.method === "GET" && url.pathname === "/api/student/profile") {
         return send(res, 200, { profile: db.profile });
@@ -52,6 +73,7 @@ function createServer() {
             ...db.profile
           };
         });
+        saveDb();
         return send(res, 200, { success: true, profileId: db.profile.id, profile: db.profile });
       }
 
@@ -63,11 +85,17 @@ function createServer() {
         const video = {
           id: `video_${Date.now()}`,
           studentId: db.profile.id,
+          coachId: db.profile.coachId,
           fileName: payload.fileName,
-          fileUrl: `https://mock.soai.yun/videos/${payload.fileName}`,
+          fileUrl: "",
+          storageProvider: "",
+          storageKey: "",
+          storagePath: "",
+          storageUrl: "",
           durationSec: payload.durationSec,
           sizeMb: payload.sizeMb,
           format: payload.format,
+          cameraAngle: payload.cameraAngle || "left",
           uploadStatus: "selected",
           uploadProgress: 0,
           uploadError: "",
@@ -76,11 +104,17 @@ function createServer() {
           consentAt: new Date().toISOString(),
           createdAt: new Date().toISOString()
         };
+        Object.assign(video, createUploadTarget(video, req));
         db.videos.push(video);
+        saveDb();
         return send(res, 200, {
           videoId: video.id,
-          uploadUrl: `http://localhost:${PORT}/mock-upload/${video.id}`,
-          maxSizeMb: 300,
+          uploadUrl: video.uploadUrl,
+          uploadMethod: video.uploadMethod,
+          storageProvider: video.storageProvider,
+          storageKey: video.storageKey,
+          storageUrl: video.storageUrl,
+          maxSizeMb: 150,
           expiresInSec: 900
         });
       }
@@ -91,6 +125,7 @@ function createServer() {
         if (!video) return sendError(res, 404, "VIDEO_NOT_FOUND", "未找到视频记录。");
         const payload = await readJson(req);
         Object.assign(video, payload);
+        saveDb();
         return send(res, 200, { success: true, video });
       }
 
@@ -104,15 +139,26 @@ function createServer() {
           studentId: payload.studentId,
           videoId: payload.videoId,
           status: "queued",
+          progress: 5,
           progressText: "训练视频已上传，等待 AI 分析",
           retryCount: 0,
           errorCode: "",
           errorMessage: "",
           reportId: "",
+          frames: [],
+          poseDetections: [],
+          ruleResults: [],
+          logs: [{
+            stage: "queued",
+            level: "info",
+            message: "分析任务已创建。",
+            at: new Date().toISOString()
+          }],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
         db.tasks.push(task);
+        saveDb();
         return send(res, 200, { taskId: task.id, status: task.status });
       }
 
@@ -120,7 +166,7 @@ function createServer() {
       if (req.method === "GET" && taskMatch) {
         const task = db.tasks.find((item) => item.id === taskMatch[1]);
         if (!task) return sendError(res, 404, "TASK_NOT_FOUND", "未找到分析任务。");
-        completeTask(task);
+        await completeTask(task);
         return send(res, 200, getTaskView(task));
       }
 
@@ -133,13 +179,24 @@ function createServer() {
           ...oldTask,
           id: `task_${Date.now()}`,
           status: "queued",
+          progress: 5,
           progressText: "重新进入分析队列",
           retryCount: oldTask.retryCount + 1,
           reportId: "",
+          frames: [],
+          poseDetections: [],
+          ruleResults: [],
+          logs: [{
+            stage: "queued",
+            level: "info",
+            message: "重试任务已创建。",
+            at: new Date().toISOString()
+          }],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
         db.tasks.push(task);
+        saveDb();
         return send(res, 200, { taskId: task.id, status: task.status });
       }
 
@@ -159,7 +216,7 @@ function createServer() {
       if (req.method === "POST" && coachReviewMatch) {
         const result = saveCoachReview(coachReviewMatch[1], await readJson(req));
         if (!result) return sendError(res, 404, "REPORT_NOT_FOUND", "未找到报告。");
-        return send(res, 200, { success: true, review: result.review, report: result.report });
+        return send(res, 200, { success: true, review: result.review, report: result.report, annotations: result.annotations });
       }
 
       if (req.method === "GET" && url.pathname === "/api/coach/dashboard") {
@@ -187,7 +244,17 @@ function createServer() {
       if (req.method === "POST" && coachReviewSubmitMatch) {
         const result = saveCoachReview(coachReviewSubmitMatch[1], await readJson(req));
         if (!result) return sendError(res, 404, "REPORT_NOT_FOUND", "未找到报告。");
-        return send(res, 200, { success: true, review: result.review, report: result.report });
+        return send(res, 200, { success: true, review: result.review, report: result.report, annotations: result.annotations });
+      }
+
+      if (req.method === "GET" && url.pathname === "/api/coach/review-annotations") {
+        return send(res, 200, {
+          items: db.reviewAnnotations.filter((item) => {
+            const reportId = url.searchParams.get("reportId");
+            if (reportId && item.reportId !== reportId) return false;
+            return true;
+          })
+        });
       }
 
       const teachingOutlineMatch = url.pathname.match(/^\/api\/coach\/reports\/([^/]+)\/teaching-outline$/);
@@ -197,6 +264,7 @@ function createServer() {
         const payload = await readJson(req);
         const outline = generateTeachingOutline(report, getTrend(report.studentId, 5), payload);
         db.teachingOutlines.push(outline);
+        saveDb();
         return send(res, 200, { success: true, outline });
       }
 
@@ -293,8 +361,8 @@ function validateVideo(payload) {
   if (!["mp4", "mov"].includes(String(payload.format || "").toLowerCase())) {
     return { code: "VIDEO_FORMAT_UNSUPPORTED", message: "暂不支持该视频格式，请上传 mp4 或 mov。" };
   }
-  if (Number(payload.sizeMb) > 300) {
-    return { code: "VIDEO_TOO_LARGE", message: "视频文件过大，请压缩或选择较短片段。" };
+  if (Number(payload.sizeMb) > 150) {
+    return { code: "VIDEO_TOO_LARGE", message: "视频文件过大，请压缩或选择 150 MB 以内片段。" };
   }
   if (Number(payload.durationSec) < 10) {
     return { code: "VIDEO_TOO_SHORT", message: "视频片段过短，请上传至少 10 秒训练视频。" };
