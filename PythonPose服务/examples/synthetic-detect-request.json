@@ -1,0 +1,21 @@
+{
+  "taskId": "task_example",
+  "videoId": "video_example",
+  "provider": "synthetic",
+  "frames": [
+    {
+      "frameIndex": 1,
+      "timestampMs": 0,
+      "imagePath": "synthetic://task_example/1",
+      "width": 960,
+      "height": 540
+    },
+    {
+      "frameIndex": 2,
+      "timestampMs": 250,
+      "imagePath": "synthetic://task_example/2",
+      "width": 960,
+      "height": 540
+    }
+  ]
+}

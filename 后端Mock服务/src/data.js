@@ -43,7 +43,19 @@ const db = {
   assignments: [],
   teachingOutlines: [],
   analyticsEvents: [],
-  feedbackItems: []
+  feedbackItems: [],
+  courses: [],
+  products: [],
+  adminContent: [],
+  adminSettings: {
+    homepageHeroTitle: "SOAI 马术 AI 教学辅助系统",
+    homepageHeroSubtitle: "上传训练视频，获得结构化训练报告与教练复核建议。",
+    ossBucket: process.env.ALIYUN_OSS_BUCKET || "",
+    ossRegion: process.env.ALIYUN_OSS_REGION || "",
+    ossEndpoint: process.env.ALIYUN_OSS_ENDPOINT || "",
+    videoProvider: process.env.SOAI_VIDEO_PROVIDER || "local",
+    updatedAt: now()
+  }
 };
 
 function seed() {
@@ -53,6 +65,78 @@ function seed() {
     createReport("report_002", "video_seed_002", "task_seed_002", "2026-05-22", 79, 76, 80, 77, 2, "reviewed"),
     createReport("report_003", "video_seed_003", "task_seed_003", "2026-05-26", 81, 78, 83, 79, 1, "reviewed"),
     createReport("report_004", "video_seed_004", "task_seed_004", "2026-05-30", 82, 80, 84, 78, 1, "pending")
+  );
+  db.courses.push(
+    {
+      id: "course_001",
+      title: "基础骑乘姿态训练",
+      category: "AI 教学",
+      status: "published",
+      videoId: "video_seed_001",
+      coverUrl: "",
+      description: "面向初级进阶学员的姿态稳定与节奏训练。",
+      sort: 10,
+      createdAt: now(),
+      updatedAt: now()
+    },
+    {
+      id: "course_002",
+      title: "马术充气护甲使用说明",
+      category: "产品教学",
+      status: "draft",
+      videoId: "",
+      coverUrl: "",
+      description: "护甲穿戴、触发边界和安全提醒。",
+      sort: 20,
+      createdAt: now(),
+      updatedAt: now()
+    }
+  );
+  db.products.push(
+    {
+      id: "product_001",
+      name: "SOAI 马术充气护甲",
+      category: "安全防护",
+      status: "active",
+      channel: "天猫旗舰店",
+      description: "面向训练和日常骑乘的安全防护产品。",
+      createdAt: now(),
+      updatedAt: now()
+    },
+    {
+      id: "product_002",
+      name: "SOAI 马术教学耳机",
+      category: "教学通信",
+      status: "planning",
+      channel: "微信群/小程序",
+      description: "面向教练现场指导和学员实时反馈的教学辅助设备。",
+      createdAt: now(),
+      updatedAt: now()
+    }
+  );
+  db.adminContent.push(
+    {
+      id: "content_001",
+      channel: "小红书",
+      title: "上传一段马术训练视频，AI 报告能看出什么？",
+      status: "reviewing",
+      owner: "内容运营",
+      publishAt: "",
+      boundary: "需确认案例授权，避免夸大 AI 准确性。",
+      createdAt: now(),
+      updatedAt: now()
+    },
+    {
+      id: "content_002",
+      channel: "微信群",
+      title: "二次上传提醒与报告反馈收集",
+      status: "scheduled",
+      owner: "社群运营",
+      publishAt: "",
+      boundary: "提醒 AI 仅作教学辅助，最终以教练现场判断为准。",
+      createdAt: now(),
+      updatedAt: now()
+    }
   );
 }
 
@@ -88,7 +172,11 @@ function saveDb() {
     assignments: db.assignments,
     teachingOutlines: db.teachingOutlines,
     analyticsEvents: db.analyticsEvents,
-    feedbackItems: db.feedbackItems
+    feedbackItems: db.feedbackItems,
+    courses: db.courses,
+    products: db.products,
+    adminContent: db.adminContent,
+    adminSettings: db.adminSettings
   }, null, 2));
   fs.renameSync(tmpFile, DB_FILE);
 }

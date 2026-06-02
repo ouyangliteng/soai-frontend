@@ -157,6 +157,43 @@ async function main() {
     assert.ok(feedbackSummary.count >= 1);
     assert.ok(feedbackSummary.averageUsefulness >= 1);
 
+    const unauthorizedAdmin = await request(baseUrl, "GET", "/api/admin/overview", undefined, 401);
+    assert.strictEqual(unauthorizedAdmin.code, "ADMIN_UNAUTHORIZED");
+
+    const adminOverview = await request(baseUrl, "GET", "/api/admin/overview", undefined, 200, {
+      Authorization: "Bearer soai-admin-dev"
+    });
+    assert.ok(adminOverview.counts.reports >= 1);
+    assert.ok(adminOverview.storage.provider === "aliyun-oss");
+
+    const adminVideos = await request(baseUrl, "GET", "/api/admin/videos", undefined, 200, {
+      Authorization: "Bearer soai-admin-dev"
+    });
+    assert.ok(adminVideos.items.some((item) => item.id === uploadToken.videoId));
+
+    const adminCourse = await request(baseUrl, "POST", "/api/admin/courses", {
+      title: "MVP 后台测试课程",
+      category: "AI 教学",
+      status: "draft",
+      videoId: uploadToken.videoId
+    }, 200, {
+      Authorization: "Bearer soai-admin-dev"
+    });
+    assert.strictEqual(adminCourse.success, true);
+    assert.ok(adminCourse.course.id);
+
+    const adminCourseUpdate = await request(baseUrl, "POST", `/api/admin/courses/${adminCourse.course.id}`, {
+      status: "published"
+    }, 200, {
+      Authorization: "Bearer soai-admin-dev"
+    });
+    assert.strictEqual(adminCourseUpdate.course.status, "published");
+
+    const adminOssStatus = await request(baseUrl, "GET", "/api/admin/oss/status", undefined, 200, {
+      Authorization: "Bearer soai-admin-dev"
+    });
+    assert.ok(Array.isArray(adminOssStatus.missing));
+
     const trend = await request(baseUrl, "GET", `/api/students/${profileRes.profile.id}/trends?limit=5`);
     assert.ok(trend.items.length >= 2);
     assert.ok(trend.trendSummary.includes("最近"));
@@ -219,10 +256,10 @@ async function main() {
   }
 }
 
-async function request(baseUrl, method, path, body, expectedStatus = 200) {
+async function request(baseUrl, method, path, body, expectedStatus = 200, extraHeaders = {}) {
   const response = await httpRequest(`${baseUrl}${path}`, {
     method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
+    headers: body ? { "Content-Type": "application/json", ...extraHeaders } : extraHeaders,
     body: body ? JSON.stringify(body) : undefined
   });
   const json = JSON.parse(response.body);

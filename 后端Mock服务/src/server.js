@@ -24,6 +24,20 @@ const { getOperationsDashboard, getOperationsDailyReport } = require("./operatio
 const { getProductSuggestions } = require("./product-suggestions");
 const { createUploadTarget, saveUploadedVideo, getStorageFilePath } = require("./storage");
 const {
+  getAdminOverview,
+  listVideos,
+  listCourses,
+  createCourse,
+  updateCourse,
+  listContent,
+  createContent,
+  listProducts,
+  createProduct,
+  updateSettings,
+  getOssStatus,
+  listUsers
+} = require("./admin");
+const {
   trackEvent,
   listEvents,
   submitFeedback,
@@ -354,6 +368,68 @@ function createServer() {
         return send(res, 200, getFeedbackSummary());
       }
 
+      if (url.pathname.startsWith("/api/admin/")) {
+        const authError = validateAdminAuth(req);
+        if (authError) return sendError(res, 401, authError.code, authError.message);
+
+        if (req.method === "GET" && url.pathname === "/api/admin/overview") {
+          return send(res, 200, getAdminOverview());
+        }
+
+        if (req.method === "GET" && url.pathname === "/api/admin/videos") {
+          return send(res, 200, { items: listVideos() });
+        }
+
+        if (req.method === "GET" && url.pathname === "/api/admin/users") {
+          return send(res, 200, listUsers());
+        }
+
+        if (req.method === "GET" && url.pathname === "/api/admin/courses") {
+          return send(res, 200, { items: listCourses() });
+        }
+
+        if (req.method === "POST" && url.pathname === "/api/admin/courses") {
+          const result = createCourse(await readJson(req));
+          if (result.error) return send(res, 400, result.error);
+          return send(res, 200, { success: true, course: result.course });
+        }
+
+        const courseMatch = url.pathname.match(/^\/api\/admin\/courses\/([^/]+)$/);
+        if (req.method === "POST" && courseMatch) {
+          const course = updateCourse(courseMatch[1], await readJson(req));
+          if (!course) return sendError(res, 404, "COURSE_NOT_FOUND", "未找到课程。");
+          return send(res, 200, { success: true, course });
+        }
+
+        if (req.method === "GET" && url.pathname === "/api/admin/content") {
+          return send(res, 200, { items: listContent() });
+        }
+
+        if (req.method === "POST" && url.pathname === "/api/admin/content") {
+          const result = createContent(await readJson(req));
+          if (result.error) return send(res, 400, result.error);
+          return send(res, 200, { success: true, content: result.content });
+        }
+
+        if (req.method === "GET" && url.pathname === "/api/admin/products") {
+          return send(res, 200, { items: listProducts() });
+        }
+
+        if (req.method === "POST" && url.pathname === "/api/admin/products") {
+          const result = createProduct(await readJson(req));
+          if (result.error) return send(res, 400, result.error);
+          return send(res, 200, { success: true, product: result.product });
+        }
+
+        if (req.method === "GET" && url.pathname === "/api/admin/oss/status") {
+          return send(res, 200, getOssStatus());
+        }
+
+        if (req.method === "POST" && url.pathname === "/api/admin/settings") {
+          return send(res, 200, { success: true, settings: updateSettings(await readJson(req)) });
+        }
+      }
+
       return sendError(res, 404, "NOT_FOUND", "接口不存在。");
     } catch (error) {
       return sendError(res, 500, "INTERNAL_ERROR", error.message);
@@ -406,10 +482,22 @@ function send(res, status, payload) {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type"
+    "Access-Control-Allow-Headers": "Content-Type, Authorization"
   });
   if (status === 204) return res.end();
   res.end(JSON.stringify(payload));
+}
+
+function validateAdminAuth(req) {
+  const expected = process.env.SOAI_ADMIN_TOKEN || "soai-admin-dev";
+  if (!expected) return null;
+  const auth = req.headers.authorization || "";
+  const token = auth.replace(/^Bearer\s+/i, "").trim();
+  if (token === expected) return null;
+  return {
+    code: "ADMIN_UNAUTHORIZED",
+    message: "后台访问未授权，请在请求头 Authorization 中携带后台 token。"
+  };
 }
 
 function sendStorageFile(res, storageKey) {

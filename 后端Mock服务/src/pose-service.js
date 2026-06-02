@@ -16,7 +16,19 @@ const KEYPOINT_NAMES = [
 
 async function detectPose(frames, video, task) {
   const provider = process.env.SOAI_POSE_PROVIDER || "synthetic";
-  if (provider !== "synthetic") {
+  if (provider === "http" || provider === "python" || provider === "auto") {
+    try {
+      return await detectPoseByHttp(frames, video, task, provider);
+    } catch (error) {
+      task.logs.push({
+        stage: "detecting_pose",
+        level: provider === "auto" ? "warn" : "error",
+        message: `Python Pose Service 调用失败：${error.message}${provider === "auto" ? "，已回退到本地模拟关键点。" : ""}`,
+        at: new Date().toISOString()
+      });
+      if (provider !== "auto") throw error;
+    }
+  } else if (provider !== "synthetic") {
     task.logs.push({
       stage: "detecting_pose",
       level: "warn",
@@ -37,6 +49,109 @@ async function detectPose(frames, video, task) {
       visibilityQuality: poseConfidence >= 0.72 ? "usable" : "low",
       provider
     };
+  });
+}
+
+async function detectPoseByHttp(frames, video, task, providerMode) {
+  const baseUrl = (process.env.SOAI_POSE_SERVICE_URL || "http://127.0.0.1:8793").replace(/\/$/, "");
+  const modelProvider = process.env.SOAI_POSE_MODEL_PROVIDER || "synthetic";
+  const payload = {
+    taskId: task.id,
+    videoId: video.id,
+    provider: modelProvider,
+    video: {
+      id: video.id,
+      fileName: video.fileName,
+      durationSec: video.durationSec,
+      storageProvider: video.storageProvider,
+      storageKey: video.storageKey
+    },
+    frames: frames.map((frame) => ({
+      frameIndex: frame.frameIndex,
+      timestampMs: frame.timestampMs,
+      imagePath: frame.imagePath,
+      imageUrl: frame.imageUrl,
+      width: frame.width,
+      height: frame.height,
+      extractedBy: frame.extractedBy
+    }))
+  };
+  const response = await postJson(`${baseUrl}/v1/pose/detect`, payload, Number(process.env.SOAI_POSE_SERVICE_TIMEOUT_MS || 30000));
+  if (!response.success || !Array.isArray(response.frames)) {
+    throw new Error(response.message || "姿态服务返回格式不正确。");
+  }
+  const normalized = response.frames.map((frame) => normalizePoseFrame(frame, response.provider || modelProvider));
+  task.logs.push({
+    stage: "detecting_pose",
+    level: "info",
+    message: `Python Pose Service 已返回 ${normalized.length} 帧关键点，provider=${response.provider || modelProvider}，mode=${providerMode}。`,
+    at: new Date().toISOString()
+  });
+  return normalized;
+}
+
+function normalizePoseFrame(frame, fallbackProvider) {
+  const keypoints = {};
+  KEYPOINT_NAMES.forEach((name) => {
+    const pointValue = frame.keypoints && frame.keypoints[name] ? frame.keypoints[name] : {};
+    keypoints[name] = {
+      x: Number(pointValue.x || 0),
+      y: Number(pointValue.y || 0),
+      confidence: Number(pointValue.confidence || 0)
+    };
+  });
+  const poseConfidence = Number.isFinite(Number(frame.poseConfidence))
+    ? Number(frame.poseConfidence)
+    : average(KEYPOINT_NAMES.map((name) => keypoints[name].confidence));
+  return {
+    frameIndex: Number(frame.frameIndex || 0),
+    timestampMs: Number(frame.timestampMs || 0),
+    keypoints,
+    poseConfidence,
+    visibilityQuality: frame.visibilityQuality || (poseConfidence >= 0.72 ? "usable" : "low"),
+    provider: frame.provider || fallbackProvider,
+    modelName: frame.modelName || ""
+  };
+}
+
+function postJson(targetUrl, payload, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(targetUrl);
+    const body = JSON.stringify(payload);
+    const transport = url.protocol === "https:" ? require("https") : require("http");
+    const req = transport.request({
+      hostname: url.hostname,
+      port: url.port || (url.protocol === "https:" ? 443 : 80),
+      path: `${url.pathname}${url.search}`,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(body)
+      },
+      timeout: timeoutMs
+    }, (res) => {
+      const chunks = [];
+      res.on("data", (chunk) => chunks.push(chunk));
+      res.on("end", () => {
+        const text = Buffer.concat(chunks).toString("utf8");
+        let json;
+        try {
+          json = text ? JSON.parse(text) : {};
+        } catch (error) {
+          return reject(new Error(`姿态服务 JSON 解析失败：${error.message}`));
+        }
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          return reject(new Error(json.message || json.code || `姿态服务 HTTP ${res.statusCode}`));
+        }
+        resolve(json);
+      });
+    });
+    req.on("timeout", () => {
+      req.destroy(new Error(`姿态服务请求超时 ${timeoutMs}ms`));
+    });
+    req.on("error", reject);
+    req.write(body);
+    req.end();
   });
 }
 

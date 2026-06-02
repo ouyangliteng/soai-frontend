@@ -5,7 +5,7 @@
   "description": "SOAI 马术 AI 教学小程序 Mock API",
   "scripts": {
     "start": "node src/server.js",
-    "test": "node test/api.test.js && node test/persistence.test.js",
+    "test": "node test/api.test.js && node test/persistence.test.js && (cd ../PythonPose服务 && bash scripts/verify-pose-service.sh) && node test/python-pose-service.test.js && node test/yolo-provider-report.test.js",
     "verify:api": "bash deploy/verify-api.sh"
   },
   "engines": {

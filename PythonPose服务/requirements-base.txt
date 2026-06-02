@@ -1,0 +1,2 @@
+# Base service uses only Python standard library.
+# Keep this file so deployment scripts can create a virtualenv consistently.

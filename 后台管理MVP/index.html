@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SOAI 后台管理 MVP</title>
+    <meta name="description" content="SOAI 小程序后台管理 MVP" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="#overview" aria-label="SOAI 后台首页">
+        <span>S</span>
+        <strong>SOAI Admin</strong>
+      </a>
+      <nav>
+        <a class="active" href="#overview">数据总览</a>
+        <a href="#videos">视频管理</a>
+        <a href="#courses">课程管理</a>
+        <a href="#users">用户数据</a>
+        <a href="#content">内容运营</a>
+        <a href="#products">产品资料</a>
+        <a href="#settings">OSS 配置</a>
+      </nav>
+      <div class="sidebar-note">
+        <b>MVP 目标</b>
+        <span>先能查看数据、登记视频课程、管理内容和产品资料，后续接 OSS 直传与权限系统。</span>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div>
+          <p class="caption">SOAI 小程序 / 内测后台</p>
+          <h1>后台管理 MVP</h1>
+        </div>
+        <div class="top-actions">
+          <input id="apiBaseUrl" aria-label="API 地址" value="http://127.0.0.1:8787" />
+          <input id="adminToken" aria-label="后台 Token" value="soai-admin-dev" />
+          <button id="saveConfigBtn" type="button">保存连接</button>
+          <button id="refreshBtn" type="button">刷新</button>
+        </div>
+      </header>
+
+      <section id="overview" class="kpi-grid" aria-label="后台核心指标"></section>
+
+      <section class="layout-grid">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="caption">存储状态</p>
+              <h2>阿里云 OSS 接入检查</h2>
+            </div>
+            <span id="ossStatusPill" class="status-pill watch">检测中</span>
+          </div>
+          <div id="ossStatus" class="oss-box"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="caption">待处理</p>
+              <h2>教练复核报告</h2>
+            </div>
+          </div>
+          <div id="pendingReports" class="compact-list"></div>
+        </article>
+      </section>
+
+      <section id="videos" class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="caption">媒资</p>
+            <h2>视频管理</h2>
+          </div>
+          <span class="panel-tag">先登记，后续接 OSS/VOD 直传</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>视频</th>
+                <th>学员</th>
+                <th>状态</th>
+                <th>时长</th>
+                <th>存储</th>
+                <th>报告</th>
+              </tr>
+            </thead>
+            <tbody id="videoRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="courses" class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="caption">课程</p>
+            <h2>小程序课程管理</h2>
+          </div>
+          <button class="panel-button" data-open="courseForm">新增课程</button>
+        </div>
+        <form id="courseForm" class="inline-form hidden">
+          <input name="title" placeholder="课程标题，例如 马术充气护甲使用说明" required />
+          <input name="category" placeholder="分类，例如 产品教学" />
+          <select name="status">
+            <option value="draft">草稿</option>
+            <option value="published">上架</option>
+            <option value="archived">归档</option>
+          </select>
+          <input name="videoId" placeholder="绑定视频 ID，可留空" />
+          <textarea name="description" placeholder="课程说明"></textarea>
+          <button type="submit">保存课程</button>
+        </form>
+        <div id="courseGrid" class="card-grid"></div>
+      </section>
+
+      <section id="users" class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="caption">用户</p>
+            <h2>学员与训练记录</h2>
+          </div>
+        </div>
+        <div id="userList" class="compact-list"></div>
+      </section>
+
+      <section id="content" class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="caption">运营</p>
+            <h2>小红书、抖音、视频号、微信群内容队列</h2>
+          </div>
+          <button class="panel-button" data-open="contentForm">新增内容</button>
+        </div>
+        <form id="contentForm" class="inline-form hidden">
+          <input name="title" placeholder="内容标题" required />
+          <select name="channel">
+            <option>小红书</option>
+            <option>抖音</option>
+            <option>微信视频号</option>
+            <option>微信群</option>
+            <option>天猫旗舰店</option>
+          </select>
+          <select name="status">
+            <option value="draft">草稿</option>
+            <option value="reviewing">审核中</option>
+            <option value="scheduled">已排期</option>
+            <option value="published">已发布</option>
+          </select>
+          <input name="owner" placeholder="负责人" />
+          <textarea name="boundary" placeholder="发布边界，例如 确认视频授权，避免夸大 AI 准确性"></textarea>
+          <button type="submit">保存内容</button>
+        </form>
+        <div id="contentQueue" class="queue"></div>
+      </section>
+
+      <section id="products" class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="caption">产品</p>
+            <h2>产品资料管理</h2>
+          </div>
+          <button class="panel-button" data-open="productForm">新增产品</button>
+        </div>
+        <form id="productForm" class="inline-form hidden">
+          <input name="name" placeholder="产品名称，例如 SOAI 马术教学耳机" required />
+          <input name="category" placeholder="分类，例如 教学通信" />
+          <select name="status">
+            <option value="planning">规划中</option>
+            <option value="active">销售中</option>
+            <option value="paused">暂停</option>
+          </select>
+          <input name="channel" placeholder="渠道，例如 小程序/天猫旗舰店" />
+          <textarea name="description" placeholder="产品说明"></textarea>
+          <button type="submit">保存产品</button>
+        </form>
+        <div id="productGrid" class="card-grid"></div>
+      </section>
+
+      <section id="settings" class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="caption">配置</p>
+            <h2>小程序首页与 OSS 预配置</h2>
+          </div>
+        </div>
+        <form id="settingsForm" class="settings-form">
+          <label>首页标题<input name="homepageHeroTitle" placeholder="SOAI 马术 AI 教学辅助系统" /></label>
+          <label>首页副标题<input name="homepageHeroSubtitle" placeholder="上传训练视频，获得结构化训练报告。" /></label>
+          <label>OSS Bucket<input name="ossBucket" placeholder="例如 soai-miniapp" /></label>
+          <label>OSS Region<input name="ossRegion" placeholder="例如 oss-cn-hangzhou" /></label>
+          <label>OSS Endpoint<input name="ossEndpoint" placeholder="例如 https://oss-cn-hangzhou.aliyuncs.com" /></label>
+          <button type="submit">保存配置</button>
+        </form>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="./script.js"></script>
+  </body>
+</html>

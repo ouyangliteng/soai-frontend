@@ -1,0 +1,18 @@
+services:
+  soai-pose-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.yolo
+    image: soai-pose-service:yolo
+    container_name: soai-pose-service
+    restart: unless-stopped
+    environment:
+      POSE_PROVIDER: yolo-pose
+      YOLO_POSE_MODEL_PATH: /models/yolo11n-pose.pt
+      POSE_HOST: 0.0.0.0
+      POSE_PORT: 8793
+    ports:
+      - "127.0.0.1:8793:8793"
+    volumes:
+      - /data/soai-models:/models:ro
+      - /data/soai-storage:/data/soai-storage:ro

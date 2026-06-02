@@ -1,0 +1,30 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    POSE_HOST=0.0.0.0 \
+    POSE_PORT=8793 \
+    POSE_PROVIDER=yolo-pose \
+    YOLO_POSE_MODEL_PATH=yolo11n-pose.pt
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libglib2.0-0 libgl1 curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements-base.txt requirements-yolo.txt ./
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools \
+    && pip install --no-cache-dir -r requirements-base.txt -r requirements-yolo.txt
+
+COPY pose_service.py ./pose_service.py
+COPY tests ./tests
+COPY examples ./examples
+COPY scripts ./scripts
+
+EXPOSE 8793
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:8793/health || exit 1
+
+CMD ["python", "pose_service.py", "--host", "0.0.0.0", "--port", "8793"]

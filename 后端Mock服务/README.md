@@ -25,6 +25,7 @@
 - 运营看板反馈质量汇总
 - 内测日报汇总
 - 报告相关产品知识建议
+- 后台管理 MVP 接口
 
 ## 2. 启动
 
@@ -140,6 +141,35 @@ npm test
 - `POST /api/feedback`
 - `GET /api/feedback/summary`
 
+### 后台管理
+
+后台接口需要请求头：
+
+```text
+Authorization: Bearer ${SOAI_ADMIN_TOKEN}
+```
+
+本地开发默认 token：
+
+```text
+soai-admin-dev
+```
+
+接口：
+
+- `GET /api/admin/overview`
+- `GET /api/admin/videos`
+- `GET /api/admin/users`
+- `GET /api/admin/courses`
+- `POST /api/admin/courses`
+- `POST /api/admin/courses/{courseId}`
+- `GET /api/admin/content`
+- `POST /api/admin/content`
+- `GET /api/admin/products`
+- `POST /api/admin/products`
+- `GET /api/admin/oss/status`
+- `POST /api/admin/settings`
+
 ## 5. 小程序对接方式
 
 小程序当前使用 `utils/store.js` 本地 mock。
@@ -169,6 +199,7 @@ utils/api.js
 - JSON 文件持久化仍是内测级方案，正式多教练、多学员上线前应升级为 MySQL/PostgreSQL/MongoDB 等数据库。
 - 本地上传地址 `/mock-upload/{videoId}` 可接收真实视频文件，生产环境应替换为 COS/OSS 等对象存储直传地址。
 - 分析任务已经拆成抽帧、姿态识别、马术规则、报告生成阶段；未安装 ffmpeg 时会回退为带时间戳的帧元数据。
-- 姿态识别当前默认使用 SOAI 标准关键点适配器模拟输出，生产环境应将 `pose-service.js` 替换或配置为 RTMPose/YOLO-Pose 服务。
+- 姿态识别支持 `SOAI_POSE_PROVIDER=synthetic` 本地模拟、`http` 调用独立 Python Pose Service、`auto` 失败回退。真实 YOLO-Pose/RTMPose 模型配置见 `../PythonPose服务/README.md`。
 - AI 报告基于结构化姿态和规则结果生成，当前不调用外部大模型；可在报告生成层接入 OpenAI 或国内可商用大模型做文本组织。
 - 没有登录、鉴权和多教练权限。
+- 后台 MVP 目前使用 Bearer Token 鉴权，生产环境必须设置 `SOAI_ADMIN_TOKEN`，后续再升级为管理员账号、角色权限和操作审计。
