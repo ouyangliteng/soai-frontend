@@ -9,6 +9,6 @@
     "verify:api": "bash deploy/verify-api.sh"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=16"
   }
 }

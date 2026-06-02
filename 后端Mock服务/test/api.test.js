@@ -1,4 +1,5 @@
 const assert = require("assert");
+const http = require("http");
 const { createServer } = require("../src/server");
 
 async function main() {
@@ -36,14 +37,7 @@ async function main() {
     });
     assert.ok(uploadToken.videoId);
 
-    const form = new FormData();
-    form.append("file", new Blob([Buffer.from("fake-video-bytes")], { type: "video/mp4" }), "training.mp4");
-    const uploadFileRes = await fetch(uploadToken.uploadUrl, {
-      method: "POST",
-      body: form
-    });
-    assert.strictEqual(uploadFileRes.status, 200);
-    const uploadFileJson = await uploadFileRes.json();
+    const uploadFileJson = await uploadFile(uploadToken.uploadUrl, Buffer.from("fake-video-bytes"));
     assert.strictEqual(uploadFileJson.success, true);
     assert.ok(uploadFileJson.storageUrl);
 
@@ -215,14 +209,60 @@ async function main() {
 }
 
 async function request(baseUrl, method, path, body, expectedStatus = 200) {
-  const res = await fetch(`${baseUrl}${path}`, {
+  const response = await httpRequest(`${baseUrl}${path}`, {
     method,
     headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined
   });
-  const json = await res.json();
-  assert.strictEqual(res.status, expectedStatus, `${method} ${path} expected ${expectedStatus}, got ${res.status}: ${JSON.stringify(json)}`);
+  const json = JSON.parse(response.body);
+  assert.strictEqual(response.status, expectedStatus, `${method} ${path} expected ${expectedStatus}, got ${response.status}: ${JSON.stringify(json)}`);
   return json;
+}
+
+async function uploadFile(uploadUrl, fileBuffer) {
+  const boundary = `soai-test-${Date.now()}`;
+  const head = Buffer.from([
+    `--${boundary}`,
+    "Content-Disposition: form-data; name=\"file\"; filename=\"training.mp4\"",
+    "Content-Type: video/mp4",
+    "",
+    ""
+  ].join("\r\n"));
+  const tail = Buffer.from(`\r\n--${boundary}--\r\n`);
+  const body = Buffer.concat([head, fileBuffer, tail]);
+  const response = await httpRequest(uploadUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": `multipart/form-data; boundary=${boundary}`,
+      "Content-Length": body.length
+    },
+    body
+  });
+  assert.strictEqual(response.status, 200);
+  return JSON.parse(response.body);
+}
+
+function httpRequest(targetUrl, options = {}) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(targetUrl);
+    const req = http.request({
+      hostname: url.hostname,
+      port: url.port,
+      path: `${url.pathname}${url.search}`,
+      method: options.method || "GET",
+      headers: options.headers || {}
+    }, (res) => {
+      const chunks = [];
+      res.on("data", (chunk) => chunks.push(chunk));
+      res.on("end", () => resolve({
+        status: res.statusCode,
+        body: Buffer.concat(chunks).toString("utf8")
+      }));
+    });
+    req.on("error", reject);
+    if (options.body) req.write(options.body);
+    req.end();
+  });
 }
 
 main().catch((error) => {

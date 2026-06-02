@@ -1,5 +1,6 @@
 const assert = require("assert");
 const fs = require("fs");
+const http = require("http");
 const os = require("os");
 const path = require("path");
 
@@ -19,7 +20,7 @@ async function main() {
   const baseUrl = `http://127.0.0.1:${port}`;
 
   try {
-    const res = await fetch(`${baseUrl}/api/student/profile`, {
+    const res = await httpRequest(`${baseUrl}/api/student/profile`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -42,6 +43,29 @@ async function main() {
     await new Promise((resolve) => server.close(resolve));
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
+}
+
+function httpRequest(targetUrl, options = {}) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(targetUrl);
+    const req = http.request({
+      hostname: url.hostname,
+      port: url.port,
+      path: `${url.pathname}${url.search}`,
+      method: options.method || "GET",
+      headers: options.headers || {}
+    }, (res) => {
+      const chunks = [];
+      res.on("data", (chunk) => chunks.push(chunk));
+      res.on("end", () => resolve({
+        status: res.statusCode,
+        body: Buffer.concat(chunks).toString("utf8")
+      }));
+    });
+    req.on("error", reject);
+    if (options.body) req.write(options.body);
+    req.end();
+  });
 }
 
 main().catch((error) => {
