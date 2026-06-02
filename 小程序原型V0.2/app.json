@@ -27,16 +27,16 @@
     "borderStyle": "white",
     "list": [
       {
+        "pagePath": "pages/coach/coach",
+        "text": "教练"
+      },
+      {
         "pagePath": "pages/home/home",
         "text": "训练"
       },
       {
         "pagePath": "pages/trends/trends",
-        "text": "趋势"
-      },
-      {
-        "pagePath": "pages/coach/coach",
-        "text": "教练"
+        "text": "赛事"
       },
       {
         "pagePath": "pages/profile/profile",

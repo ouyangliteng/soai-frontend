@@ -1,9 +1,58 @@
 <view class="page">
+  <view wx:if="{{role === 'coach'}}">
+    <view class="hero">
+      <view class="hero-title">学员训练</view>
+      <view class="hero-subtitle">查看自己学员的最近训练、报告得分、待复核状态和阶段计划。</view>
+    </view>
+
+    <view class="stats-grid">
+      <view class="stat-card">
+        <view class="stat-value">{{coachStats.activeStudentCount}}</view>
+        <view class="stat-label">名下学员</view>
+      </view>
+      <view class="stat-card">
+        <view class="stat-value">{{coachStats.pendingReviewCount}}</view>
+        <view class="stat-label">待复核报告</view>
+      </view>
+      <view class="stat-card">
+        <view class="stat-value">{{coachStats.secondUploadStudentCount}}</view>
+        <view class="stat-label">二次上传</view>
+      </view>
+      <view class="stat-card">
+        <view class="stat-value">{{coachStats.activePlanCount || 0}}</view>
+        <view class="stat-label">阶段计划</view>
+      </view>
+    </view>
+
+    <view class="section-title">基础训练情况</view>
+    <view class="card" wx:for="{{coachStudents}}" wx:key="id">
+      <view class="row">
+        <view>
+          <view class="card-title">{{item.name}}</view>
+          <view class="muted">{{item.currentLevel}} · 最近训练 {{item.latestTrainingDate || '暂无'}}</view>
+        </view>
+        <view class="tag">{{item.latestScore || 0}} 分</view>
+      </view>
+      <view class="divider"></view>
+      <view class="student-meta-row">
+        <view class="mini-tag">待复核 {{item.pendingReviewCount}}</view>
+        <view class="mini-tag">训练计划 {{item.planCount}}</view>
+        <view class="mini-tag">趋势 {{item.latestScore >= 80 ? '稳定' : '需关注'}}</view>
+      </view>
+      <view class="muted" style="margin-top: 18rpx;">{{item.trendText}}</view>
+      <view class="row" style="margin-top: 24rpx;">
+        <view class="btn btn-secondary" style="flex: 1;" data-id="{{item.id}}" bindtap="openCoachStudent">学员详情</view>
+        <view class="btn btn-primary" style="flex: 1;" data-id="{{item.latestReportId}}" bindtap="openCoachReport">最近报告</view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:else>
   <view class="hero">
     <view class="hero-title">AI 训练分析</view>
     <view class="hero-subtitle">上传本次骑乘视频，生成问题点、风险点、进步和下次训练重点。</view>
   </view>
-  <view class="btn btn-ghost" style="margin-top: 18rpx;" bindtap="goRoleSelect">切换学员 / 教练入口</view>
+  <view class="btn btn-ghost" style="margin-top: 18rpx;" bindtap="goRoleSelect">教练登录入口</view>
 
   <view class="card">
     <view class="row">
@@ -102,5 +151,6 @@
     <view class="card-title">帮助我们判断报告是否真的有用</view>
     <view class="muted" style="margin-top: 14rpx;">反馈会用于优化上传体验、AI 报告表达和教练复核流程。</view>
     <view class="btn btn-secondary" style="margin-top: 24rpx;" bindtap="goFeedback">填写反馈</view>
+  </view>
   </view>
 </view>

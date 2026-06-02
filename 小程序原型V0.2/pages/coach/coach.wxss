@@ -5,6 +5,32 @@
   margin-top: 24rpx;
 }
 
+.coach-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-top: 20rpx;
+  padding: 28rpx;
+  border: 1rpx solid #e6ebf2;
+  border-radius: 16rpx;
+  background: #ffffff;
+  box-shadow: 0 8rpx 28rpx rgba(15, 23, 42, 0.05);
+}
+
+.coach-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 92rpx;
+  height: 92rpx;
+  flex: 0 0 92rpx;
+  border-radius: 999rpx;
+  color: #ffffff;
+  background: #111827;
+  font-size: 36rpx;
+  font-weight: 800;
+}
+
 .stat-card {
   padding: 26rpx;
   border: 1rpx solid #e6ebf2;

@@ -2,6 +2,9 @@ const dataService = require("../../utils/data-service");
 
 Page({
   data: {
+    role: "student",
+    coachStudents: [],
+    coachStats: {},
     profile: {},
     completion: 0,
     latestReport: null,
@@ -13,6 +16,16 @@ Page({
 
   async onShow() {
     try {
+      const session = dataService.getCurrentSession();
+      if (session.role === "coach") {
+        const dashboard = await dataService.getCoachDashboard();
+        this.setData({
+          role: "coach",
+          coachStudents: dashboard.students || [],
+          coachStats: dashboard.stats || {}
+        });
+        return;
+      }
       const profile = (await dataService.getProfile()) || {};
       const trend = await dataService.getTrend(5, profile.id);
       const activeTask = dataService.getActiveTask();
@@ -21,6 +34,7 @@ Page({
       const latestOutline = outlines.length ? outlines[outlines.length - 1] : null;
 
       this.setData({
+        role: "student",
         profile,
         completion: dataService.getProfileCompletion(profile),
         latestReport,
@@ -53,7 +67,7 @@ Page({
   },
 
   goRoleSelect() {
-    wx.reLaunch({ url: "/pages/role-select/role-select" });
+    wx.reLaunch({ url: "/pages/role-select/role-select?mode=coach" });
   },
 
   goUpload() {
@@ -84,5 +98,16 @@ Page({
     const outline = this.data.latestOutline;
     if (!outline) return;
     wx.navigateTo({ url: `/pages/student-plan/student-plan?id=${outline.id}` });
+  },
+
+  openCoachStudent(event) {
+    const id = event.currentTarget.dataset.id;
+    wx.navigateTo({ url: `/pages/coach-student/coach-student?id=${id}` });
+  },
+
+  openCoachReport(event) {
+    const id = event.currentTarget.dataset.id;
+    if (!id) return;
+    wx.navigateTo({ url: `/pages/report/report?id=${id}` });
   }
 });

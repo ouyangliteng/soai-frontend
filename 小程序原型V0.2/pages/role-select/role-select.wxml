@@ -1,11 +1,11 @@
 <view class="page role-page">
   <view class="brand-block">
     <view class="brand-kicker">SOAI 马术 AI 训练</view>
-    <view class="brand-title">微信登录后进入对应端</view>
-    <view class="brand-subtitle">学员用自己的微信号注册并绑定教练；教练可用个人微信号或公司微信号登录，查看自己名下学员的训练报告和计划。</view>
+    <view class="brand-title">{{mode === 'coach' ? '教练微信登录' : '微信登录后进入对应端'}}</view>
+    <view class="brand-subtitle">{{mode === 'coach' ? '学员端不能直接打开教练工作台。请使用教练个人微信或公司微信号登录后进入。' : '学员用自己的微信号注册并绑定教练；教练可用个人微信号或公司微信号登录，查看自己名下学员的训练报告和计划。'}}</view>
   </view>
 
-  <view class="role-card student-card">
+  <view class="role-card student-card" wx:if="{{mode !== 'coach'}}">
     <view class="role-title">学员注册 / 登录</view>
     <view class="role-desc">体验版使用模拟微信身份，正式版会接入微信登录 openid。</view>
 

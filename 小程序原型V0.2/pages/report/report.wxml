@@ -19,102 +19,101 @@
     </view>
   </view>
 
-  <view class="section-title">上传视频节选</view>
-  <view class="video-card">
-    <video
-      wx:if="{{report.videoPath}}"
-      class="report-video"
-      src="{{report.videoPath}}"
-      controls
-      object-fit="cover"
-      show-center-play-btn
-    ></video>
-    <view class="video-placeholder" wx:else>
-      <view class="video-dot"></view>
+  <view class="section-title">测试结果</view>
+  <view class="analytics-result asset-result" wx:if="{{poseAnalytics}}">
+    <image class="analytics-reference" src="/assets/report-analytics-reference.png" mode="aspectFill"></image>
+
+    <view class="asset-tracking-panel">
+      <view class="asset-label">Frames</view>
+      <view class="asset-highlight">{{poseAnalytics.frames.current}} / {{poseAnalytics.frames.total}}</view>
+      <view class="asset-line"></view>
+      <view class="asset-label">Confidence</view>
+      <view class="asset-white">{{poseAnalytics.confidence}}</view>
+      <view class="asset-line"></view>
+      <view class="asset-label">Tracking</view>
+      <view class="asset-highlight">{{poseAnalytics.tracking}}</view>
+      <view class="asset-line"></view>
+      <view class="asset-label">View</view>
+      <view class="asset-white">{{poseAnalytics.view}}</view>
+    </view>
+
+    <view class="asset-chip asset-head">Head <text>{{poseAnalytics.angles.head}}°</text></view>
+    <view class="asset-chip asset-body">Upper body <text>{{poseAnalytics.angles.upperBody}}°</text></view>
+    <view class="asset-chip asset-arm">Upper arm <text>{{poseAnalytics.angles.upperArm}}°</text></view>
+    <view class="asset-chip asset-forearm">Forearm <text>{{poseAnalytics.angles.forearm}}°</text></view>
+    <view class="asset-chip asset-leg">Lower leg <text>{{poseAnalytics.angles.lowerLeg}}°</text></view>
+    <view class="asset-video-time">{{poseAnalytics.videoTimeText}}</view>
+
+    <view class="asset-score-card asset-card-upper-arm">
+      <view class="asset-score-index">1</view>
       <view>
-        <view class="card-title">示例训练片段</view>
-        <view class="muted">新上传视频生成报告后，这里会保留学员上传的 10-60 秒视频节选。</view>
+        <view class="asset-score-name">Upper arm</view>
+        <view class="asset-score-you {{poseAnalytics.angles.upperArm > 50 ? 'warn' : ''}}">You: {{poseAnalytics.angles.upperArm}}°</view>
+        <view class="asset-score-ideal">Ideal: 0-50°</view>
       </view>
     </view>
-    <view class="row video-meta">
-      <view class="small">节选：{{report.videoExcerptStartSec || 0}}s - {{report.videoExcerptEndSec || report.videoDurationSec || 60}}s</view>
-      <view class="tag">{{report.videoDurationSec || 60}} 秒内</view>
-    </view>
-  </view>
-
-  <view class="section-title">评分维度</view>
-  <view class="card">
-    <view class="score-row">
-      <view>姿态控制</view>
-      <view>{{report.scores.postureControl}}</view>
-    </view>
-    <view class="score-row">
-      <view>节奏控制</view>
-      <view>{{report.scores.rhythmControl}}</view>
-    </view>
-    <view class="score-row">
-      <view>骑坐稳定性</view>
-      <view>{{report.scores.stability}}</view>
-    </view>
-    <view class="score-row">
-      <view>扶助准确性</view>
-      <view>{{report.scores.aidAccuracy}}</view>
-    </view>
-    <view class="score-row">
-      <view>风险意识</view>
-      <view>{{report.scores.safetyAwareness}}</view>
-    </view>
-  </view>
-
-  <view class="section-title">人体姿态识别</view>
-  <view class="pose-report-card">
-    <view class="pose-report-stage">
-      <view class="level-line line-head"></view>
-      <view class="level-line line-chest"></view>
-      <view class="level-line line-hip"></view>
-      <view class="level-line line-knee"></view>
-      <view class="level-line line-foot"></view>
-
-      <view class="angle-chip chip-upper-arm">Upper arm<br/>You: 16°<br/>Ideal: 0-50°</view>
-      <view class="angle-chip chip-head">Head<br/>You: 6°<br/>Ideal: 0°</view>
-      <view class="angle-chip chip-body">Upper body<br/>You: 1°<br/>Ideal: 0°</view>
-      <view class="angle-chip chip-forearm">Forearm<br/>You: 58°<br/>Ideal: 40-90°</view>
-      <view class="angle-chip chip-leg">Lower leg<br/>You: 3°<br/>Ideal: 0°</view>
-
-      <view class="side-head"></view>
-      <view class="side-neck"></view>
-      <view class="side-torso"></view>
-      <view class="side-pelvis"></view>
-      <view class="side-upper-arm"></view>
-      <view class="side-forearm"></view>
-      <view class="side-thigh"></view>
-      <view class="side-lower-leg"></view>
-      <view class="side-foot"></view>
-
-      <view class="guide-line guide-spine"></view>
-      <view class="guide-line guide-arm"></view>
-      <view class="guide-line guide-leg"></view>
-      <view class="angle-arc arc-head"></view>
-      <view class="angle-arc arc-arm"></view>
-      <view class="angle-arc arc-leg"></view>
-    </view>
-
-    <view class="pose-opinion-grid">
-      <view class="opinion-card">
-        <view class="opinion-title">上身姿态</view>
-        <view class="opinion-text">{{report.problemPoints[0].title}}</view>
+    <view class="asset-score-card asset-card-forearm">
+      <view class="asset-score-index">2</view>
+      <view>
+        <view class="asset-score-name">Forearm</view>
+        <view class="asset-score-you {{poseAnalytics.angles.forearm > 90 ? 'warn' : ''}}">You: {{poseAnalytics.angles.forearm}}°</view>
+        <view class="asset-score-ideal">Ideal: 40-90°</view>
       </view>
-      <view class="opinion-card">
-        <view class="opinion-title">节奏反馈</view>
-        <view class="opinion-text">{{report.improvements[0]}}</view>
+    </view>
+    <view class="asset-score-card asset-card-knee">
+      <view class="asset-score-index">4</view>
+      <view>
+        <view class="asset-score-name">Knee</view>
+        <view class="asset-score-you">You: {{poseAnalytics.angles.knee}}°</view>
+        <view class="asset-score-ideal">Ideal: 0-10°</view>
       </view>
-      <view class="opinion-card">
-        <view class="opinion-title">稳定性关注</view>
-        <view class="opinion-text">{{report.nextTrainingFocus[1]}}</view>
+    </view>
+    <view class="asset-score-card asset-card-head">
+      <view class="asset-score-index">H</view>
+      <view>
+        <view class="asset-score-name">Head</view>
+        <view class="asset-score-you">You: {{poseAnalytics.angles.head}}°</view>
+        <view class="asset-score-ideal">Ideal: 0°</view>
       </view>
-      <view class="opinion-card warning">
-        <view class="opinion-title">风险提醒</view>
-        <view class="opinion-text">{{report.riskPoints[0].title}}，需结合教练现场判断。</view>
+    </view>
+    <view class="asset-score-card asset-card-body">
+      <view class="asset-score-index">B</view>
+      <view>
+        <view class="asset-score-name">Upper body</view>
+        <view class="asset-score-you">You: {{poseAnalytics.angles.upperBody}}°</view>
+        <view class="asset-score-ideal">Ideal: 0°</view>
+      </view>
+    </view>
+    <view class="asset-score-card asset-card-lower-leg">
+      <view class="asset-score-index">L</view>
+      <view>
+        <view class="asset-score-name">Lower leg</view>
+        <view class="asset-score-you">You: {{poseAnalytics.angles.lowerLeg}}°</view>
+        <view class="asset-score-ideal">Ideal: 0°</view>
+      </view>
+    </view>
+
+    <view class="asset-metrics-bar">
+      <view class="asset-overall">
+        <view class="asset-overall-label">Overall</view>
+        <view class="asset-overall-score">{{poseAnalytics.metrics.overall}}</view>
+        <view class="asset-overall-total">/100</view>
+      </view>
+      <view class="asset-metric">
+        <view>Balance</view>
+        <view class="asset-metric-score">{{poseAnalytics.metrics.balance}}</view>
+      </view>
+      <view class="asset-metric">
+        <view>Alignment</view>
+        <view class="asset-metric-score">{{poseAnalytics.metrics.alignment}}</view>
+      </view>
+      <view class="asset-metric">
+        <view>Symmetry</view>
+        <view class="asset-metric-score">{{poseAnalytics.metrics.symmetry}}</view>
+      </view>
+      <view class="asset-metric">
+        <view>Stability</view>
+        <view class="asset-metric-score">{{poseAnalytics.metrics.stability}}</view>
       </view>
     </view>
   </view>

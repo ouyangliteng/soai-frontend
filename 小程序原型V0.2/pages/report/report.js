@@ -7,6 +7,7 @@ Page({
     coachFocusText: "",
     studentExplanation: null,
     productSuggestions: null,
+    poseAnalytics: null,
     draftLoading: false,
     readCompleteTracked: false
   },
@@ -18,6 +19,7 @@ Page({
       const report = await dataService.getReport(options.id);
       this.setData({
         report,
+        poseAnalytics: buildPoseAnalytics(report),
         coachComment: report && report.coachReview ? report.coachReview : "",
         coachFocusText: report && report.coachFocusItems ? report.coachFocusItems.join("、") : ""
       });
@@ -91,7 +93,7 @@ Page({
           focusCount: focusItems.length
         }
       });
-      this.setData({ report: nextReport });
+      this.setData({ report: nextReport, poseAnalytics: buildPoseAnalytics(nextReport) });
       wx.showToast({ title: "已提交", icon: "success" });
     } catch (error) {
       wx.showToast({ title: error.message || "提交失败", icon: "none" });
@@ -140,3 +142,53 @@ Page({
     wx.navigateTo({ url: `/pages/teaching-outline/teaching-outline?reportId=${this.data.report.id}` });
   }
 });
+
+function buildPoseAnalytics(report) {
+  if (!report || !report.scores) return null;
+  const scores = report.scores;
+  const durationSec = clamp(Number(report.videoDurationSec || 38), 10, 60);
+  const currentSec = clamp(Math.round(durationSec * 0.32), 3, durationSec);
+  const totalFrames = durationSec * 10;
+  const currentFrame = Math.min(totalFrames, Math.max(1, currentSec * 10 + 8));
+  const head = clamp(Math.round((100 - scores.safetyAwareness) / 2.6), 0, 12);
+  const upperBody = clamp(Math.round((100 - scores.postureControl) / 14), 0, 8);
+  const upperArm = clamp(Math.round(100 - scores.aidAccuracy), 0, 50);
+  const forearm = clamp(40 + Math.round((100 - scores.rhythmControl) * 0.85), 40, 90);
+  const lowerLeg = clamp(Math.round((100 - scores.stability) / 6), 0, 12);
+  const knee = clamp(Math.round((100 - scores.stability) / 5), 0, 15);
+
+  return {
+    frames: {
+      current: currentFrame,
+      total: totalFrames
+    },
+    videoTimeText: `${formatTime(currentSec)} / ${formatTime(durationSec)}`,
+    confidence: `${clamp(Math.round((scores.postureControl + scores.rhythmControl + scores.stability) / 3 + 10), 70, 98)}%`,
+    tracking: report.riskPoints && report.riskPoints.length > 1 ? "Attention" : "Stable",
+    view: "Left",
+    angles: {
+      head,
+      upperBody,
+      upperArm,
+      forearm,
+      lowerLeg,
+      knee
+    },
+    metrics: {
+      overall: report.summary.overallScore,
+      balance: scores.rhythmControl,
+      alignment: scores.postureControl,
+      symmetry: scores.aidAccuracy,
+      stability: scores.stability
+    }
+  };
+}
+
+function formatTime(seconds) {
+  return `0:${String(seconds).padStart(2, "0")}`;
+}
+
+function clamp(value, min, max) {
+  if (!Number.isFinite(value)) return min;
+  return Math.max(min, Math.min(max, value));
+}

@@ -1,10 +1,39 @@
 <view class="page">
-  <view class="hero">
+  <view class="hero" wx:if="{{role === 'student'}}">
     <view class="hero-title">学员资料</view>
     <view class="hero-subtitle">资料用于辅助 AI 判断训练背景，报告会保留生成当时的资料快照。</view>
   </view>
 
-  <view class="card">
+  <view class="hero" wx:else>
+    <view class="hero-title">教练资料</view>
+    <view class="hero-subtitle">教练端资料只显示教练基本信息，学员训练资料在教练工作台查看。</view>
+  </view>
+
+  <view class="card" wx:if="{{role === 'coach'}}">
+    <view class="coach-profile-row">
+      <view class="coach-avatar">{{coach.name ? coach.name.slice(0, 1) : '教'}}</view>
+      <view style="flex: 1;">
+        <view class="card-title">{{coach.name || '教练账号'}}</view>
+        <view class="muted" style="margin-top: 8rpx;">{{coach.clubName || '未绑定俱乐部'}}</view>
+      </view>
+      <view class="tag">{{coach.verified ? '已认证' : '待认证'}}</view>
+    </view>
+    <view class="divider"></view>
+    <view class="score-row">
+      <view>登录方式</view>
+      <view>{{coach.loginType === 'company_wechat' ? '公司微信号' : '教练个人微信'}}</view>
+    </view>
+    <view class="score-row">
+      <view>模拟微信 ID</view>
+      <view>{{coach.wxOpenId}}</view>
+    </view>
+    <view class="score-row">
+      <view>联系电话</view>
+      <view>{{coach.phone || '未填写'}}</view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{role === 'student'}}">
     <view class="row">
       <view>
         <view class="card-title">数据源</view>
@@ -65,6 +94,6 @@
     </view>
   </view>
 
-  <view class="btn btn-primary" style="margin-top: 28rpx;" bindtap="save">保存资料</view>
-  <view class="muted" style="margin-top: 18rpx;">姓名、骑龄、当前等级是上传训练视频前的重点字段。</view>
+  <view class="btn btn-primary" style="margin-top: 28rpx;" bindtap="save" wx:if="{{role === 'student'}}">保存资料</view>
+  <view class="muted" style="margin-top: 18rpx;" wx:if="{{role === 'student'}}">姓名、骑龄、当前等级是上传训练视频前的重点字段。</view>
 </view>

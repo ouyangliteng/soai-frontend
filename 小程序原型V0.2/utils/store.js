@@ -289,6 +289,11 @@ function getCoaches() {
   return wx.getStorageSync(COACHES_KEY) || [];
 }
 
+function getCurrentCoach() {
+  const session = getCurrentSession();
+  return getCoaches().find((coach) => coach.id === session.coachId) || seedCoach;
+}
+
 function saveCoaches(coaches) {
   wx.setStorageSync(COACHES_KEY, coaches);
 }
@@ -615,6 +620,7 @@ module.exports = {
   loginAsCoach,
   getCurrentSession,
   getCoaches,
+  getCurrentCoach,
   getStudents,
   getProfile,
   saveProfile,

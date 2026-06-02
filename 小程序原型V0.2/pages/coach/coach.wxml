@@ -1,9 +1,18 @@
 <view class="page">
   <view class="hero">
     <view class="hero-title">教练工作台</view>
-    <view class="hero-subtitle">优先处理待复核和风险报告，跟踪学员最近训练变化。</view>
+    <view class="hero-subtitle">查看名下学员训练报告、阶段计划和赛事安排。</view>
   </view>
-  <view class="btn btn-ghost" style="margin-top: 18rpx;" bindtap="goRoleSelect">切换学员 / 教练入口</view>
+
+  <view class="coach-profile-card">
+    <view class="coach-avatar">{{coach.name ? coach.name.slice(0, 1) : '教'}}</view>
+    <view style="flex: 1;">
+      <view class="card-title">{{coach.name || '教练账号'}}</view>
+      <view class="muted">{{coach.clubName || '未绑定俱乐部'}}</view>
+      <view class="small" style="margin-top: 8rpx;">{{coach.loginType === 'company_wechat' ? '公司微信号' : '教练个人微信'}} · {{coach.verified ? '已认证' : '待认证'}}</view>
+    </view>
+    <view class="tag">教练端</view>
+  </view>
 
   <view class="stats-grid">
     <view class="stat-card">
@@ -50,7 +59,7 @@
     <view class="muted">新的训练报告生成后，会在这里按风险优先级展示。</view>
   </view>
 
-  <view class="section-title">学员概览</view>
+  <view class="section-title">学员训练情况</view>
   <view class="card" wx:for="{{students}}" wx:key="id">
     <view class="row">
       <view class="student-row-left">
@@ -66,6 +75,7 @@
     <view class="student-meta-row">
       <view class="mini-tag">待复核 {{item.pendingReviewCount}}</view>
       <view class="mini-tag">训练计划 {{item.planCount}}</view>
+      <view class="mini-tag">最近得分 {{item.latestScore}}</view>
     </view>
     <view class="muted" style="margin-top: 18rpx;">{{item.trendText}}</view>
     <view class="btn btn-secondary" style="margin-top: 24rpx;" data-id="{{item.id}}" bindtap="openStudent">查看学员详情</view>

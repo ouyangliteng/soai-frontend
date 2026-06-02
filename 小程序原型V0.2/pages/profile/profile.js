@@ -2,6 +2,8 @@ const dataService = require("../../utils/data-service");
 
 Page({
   data: {
+    role: "student",
+    coach: {},
     form: {},
     dataMode: "local",
     coaches: [],
@@ -12,10 +14,20 @@ Page({
   async onShow() {
     try {
       dataService.trackEvent("profile_view", { page: "profile" });
+      const session = dataService.getCurrentSession();
+      if (session.role === "coach") {
+        this.setData({
+          role: "coach",
+          coach: dataService.getCurrentCoach(),
+          dataMode: dataService.getMode()
+        });
+        return;
+      }
       const coaches = dataService.getCoaches();
       const form = (await dataService.getProfile()) || {};
       const selectedCoachIndex = Math.max(0, coaches.findIndex((coach) => coach.id === form.coachId));
       this.setData({
+        role: "student",
         form,
         dataMode: dataService.getMode(),
         coaches,

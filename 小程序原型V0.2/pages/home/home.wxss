@@ -20,6 +20,48 @@
   font-weight: 800;
 }
 
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18rpx;
+  margin-top: 24rpx;
+}
+
+.stat-card {
+  padding: 26rpx;
+  border: 1rpx solid #e6ebf2;
+  border-radius: 16rpx;
+  background: #ffffff;
+}
+
+.stat-value {
+  color: #0f67ff;
+  font-size: 44rpx;
+  font-weight: 800;
+}
+
+.stat-label {
+  margin-top: 8rpx;
+  color: #667085;
+  font-size: 24rpx;
+}
+
+.student-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+
+.mini-tag {
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  color: #344054;
+  background: #f3f6fb;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
 .mini-chart {
   display: flex;
   align-items: flex-end;

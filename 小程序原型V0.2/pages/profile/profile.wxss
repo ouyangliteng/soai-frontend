@@ -4,6 +4,26 @@
   gap: 20rpx;
 }
 
+.coach-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.coach-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 104rpx;
+  height: 104rpx;
+  flex: 0 0 104rpx;
+  border-radius: 999rpx;
+  color: #ffffff;
+  background: #111827;
+  font-size: 40rpx;
+  font-weight: 800;
+}
+
 .avatar {
   width: 104rpx;
   height: 104rpx;
@@ -38,4 +58,18 @@
   color: #111827;
   background: #ffffff;
   font-size: 28rpx;
+}
+
+.score-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid #edf0f5;
+  color: #344054;
+  font-size: 25rpx;
+}
+
+.score-row:last-child {
+  border-bottom: 0;
 }

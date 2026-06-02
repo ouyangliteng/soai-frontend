@@ -3,6 +3,7 @@ const dataService = require("../../utils/data-service");
 Page({
   data: {
     currentRole: "",
+    mode: "all",
     coaches: [],
     coachNames: [],
     selectedCoachIndex: 0,
@@ -16,6 +17,12 @@ Page({
       name: "李教练",
       loginType: "coach_wechat"
     }
+  },
+
+  onLoad(options) {
+    this.setData({
+      mode: options.mode === "coach" ? "coach" : "all"
+    });
   },
 
   onShow() {

@@ -2,6 +2,7 @@ const dataService = require("../../utils/data-service");
 
 Page({
   data: {
+    coach: {},
     stats: {},
     pendingReports: [],
     students: []
@@ -9,8 +10,17 @@ Page({
 
   async onShow() {
     try {
+      const session = dataService.getCurrentSession();
+      if (session.role !== "coach") {
+        wx.reLaunch({ url: "/pages/role-select/role-select?mode=coach" });
+        return;
+      }
       const dashboard = await dataService.getCoachDashboard();
-      this.setData(dashboard);
+      const coach = dataService.getCurrentCoach();
+      this.setData({
+        ...dashboard,
+        coach
+      });
     } catch (error) {
       wx.showToast({ title: error.message || "教练工作台加载失败", icon: "none" });
     }
@@ -27,6 +37,6 @@ Page({
   },
 
   goRoleSelect() {
-    wx.reLaunch({ url: "/pages/role-select/role-select" });
+    wx.reLaunch({ url: "/pages/role-select/role-select?mode=coach" });
   }
 });
