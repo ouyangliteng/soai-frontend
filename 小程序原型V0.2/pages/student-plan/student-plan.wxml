@@ -1,0 +1,54 @@
+<view class="page" wx:if="{{outline}}">
+  <view class="hero">
+    <view class="hero-title">我的训练计划</view>
+    <view class="hero-subtitle">{{profile.name}} · {{outline.title}}</view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">阶段目标</view>
+    <view class="muted" style="margin-top: 14rpx;">{{outline.stageGoal}}</view>
+    <view class="divider"></view>
+    <view class="small caution">训练安排以教练现场指导为准，AI 报告用于课后复盘和趋势对比。</view>
+  </view>
+
+  <view class="section-title">本阶段怎么练</view>
+  <view class="card week-card" wx:for="{{outline.weeklyPlan}}" wx:key="week">
+    <view class="row">
+      <view class="card-title">第 {{item.week}} 周</view>
+      <view class="tag">{{item.theme}}</view>
+    </view>
+
+    <view class="sub-title">我的任务</view>
+    <view class="list-item" wx:for="{{item.studentTasks}}" wx:for-item="task" wx:key="*this">{{task}}</view>
+
+    <view class="sub-title">课后复盘重点</view>
+    <view class="tag-list">
+      <view class="tag" wx:for="{{item.aiReviewFocus}}" wx:for-item="focus" wx:key="*this">{{focus}}</view>
+    </view>
+
+    <view class="sub-title">完成标准</view>
+    <view class="list-item" wx:for="{{item.acceptance}}" wx:for-item="task" wx:key="*this">{{task}}</view>
+  </view>
+
+  <view class="section-title">下次上传要求</view>
+  <view class="card">
+    <view class="muted">{{outline.nextUploadRequirement}}</view>
+  </view>
+
+  <view class="section-title">分享</view>
+  <view class="card">
+    <view class="card-title">生成图片发送</view>
+    <view class="muted" style="margin-top: 14rpx;">可以生成一张图片，保存或发送给家长、教练和训练群。</view>
+    <view class="btn btn-primary" style="margin-top: 24rpx;" bindtap="exportImage">生成分享图片</view>
+    <view class="btn btn-secondary" style="margin-top: 18rpx;" bindtap="exportPdf">PDF 导出说明</view>
+  </view>
+
+  <canvas canvas-id="studentPlanCanvas" class="export-canvas"></canvas>
+</view>
+
+<view class="page" wx:else>
+  <view class="hero">
+    <view class="hero-title">暂无训练计划</view>
+    <view class="hero-subtitle">教练生成阶段教学大纲后，会同步显示在这里。</view>
+  </view>
+</view>

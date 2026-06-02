@@ -19,6 +19,29 @@
     </view>
   </view>
 
+  <view class="section-title">上传视频节选</view>
+  <view class="video-card">
+    <video
+      wx:if="{{report.videoPath}}"
+      class="report-video"
+      src="{{report.videoPath}}"
+      controls
+      object-fit="cover"
+      show-center-play-btn
+    ></video>
+    <view class="video-placeholder" wx:else>
+      <view class="video-dot"></view>
+      <view>
+        <view class="card-title">示例训练片段</view>
+        <view class="muted">新上传视频生成报告后，这里会保留学员上传的 10-60 秒视频节选。</view>
+      </view>
+    </view>
+    <view class="row video-meta">
+      <view class="small">节选：{{report.videoExcerptStartSec || 0}}s - {{report.videoExcerptEndSec || report.videoDurationSec || 60}}s</view>
+      <view class="tag">{{report.videoDurationSec || 60}} 秒内</view>
+    </view>
+  </view>
+
   <view class="section-title">评分维度</view>
   <view class="card">
     <view class="score-row">
@@ -40,6 +63,59 @@
     <view class="score-row">
       <view>风险意识</view>
       <view>{{report.scores.safetyAwareness}}</view>
+    </view>
+  </view>
+
+  <view class="section-title">人体姿态识别</view>
+  <view class="pose-report-card">
+    <view class="pose-report-stage">
+      <view class="level-line line-head"></view>
+      <view class="level-line line-chest"></view>
+      <view class="level-line line-hip"></view>
+      <view class="level-line line-knee"></view>
+      <view class="level-line line-foot"></view>
+
+      <view class="angle-chip chip-upper-arm">Upper arm<br/>You: 16°<br/>Ideal: 0-50°</view>
+      <view class="angle-chip chip-head">Head<br/>You: 6°<br/>Ideal: 0°</view>
+      <view class="angle-chip chip-body">Upper body<br/>You: 1°<br/>Ideal: 0°</view>
+      <view class="angle-chip chip-forearm">Forearm<br/>You: 58°<br/>Ideal: 40-90°</view>
+      <view class="angle-chip chip-leg">Lower leg<br/>You: 3°<br/>Ideal: 0°</view>
+
+      <view class="side-head"></view>
+      <view class="side-neck"></view>
+      <view class="side-torso"></view>
+      <view class="side-pelvis"></view>
+      <view class="side-upper-arm"></view>
+      <view class="side-forearm"></view>
+      <view class="side-thigh"></view>
+      <view class="side-lower-leg"></view>
+      <view class="side-foot"></view>
+
+      <view class="guide-line guide-spine"></view>
+      <view class="guide-line guide-arm"></view>
+      <view class="guide-line guide-leg"></view>
+      <view class="angle-arc arc-head"></view>
+      <view class="angle-arc arc-arm"></view>
+      <view class="angle-arc arc-leg"></view>
+    </view>
+
+    <view class="pose-opinion-grid">
+      <view class="opinion-card">
+        <view class="opinion-title">上身姿态</view>
+        <view class="opinion-text">{{report.problemPoints[0].title}}</view>
+      </view>
+      <view class="opinion-card">
+        <view class="opinion-title">节奏反馈</view>
+        <view class="opinion-text">{{report.improvements[0]}}</view>
+      </view>
+      <view class="opinion-card">
+        <view class="opinion-title">稳定性关注</view>
+        <view class="opinion-text">{{report.nextTrainingFocus[1]}}</view>
+      </view>
+      <view class="opinion-card warning">
+        <view class="opinion-title">风险提醒</view>
+        <view class="opinion-text">{{report.riskPoints[0].title}}，需结合教练现场判断。</view>
+      </view>
     </view>
   </view>
 

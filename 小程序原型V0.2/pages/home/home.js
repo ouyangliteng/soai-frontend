@@ -6,6 +6,7 @@ Page({
     completion: 0,
     latestReport: null,
     activeTask: null,
+    latestOutline: null,
     trendItems: [],
     trendSummary: ""
   },
@@ -16,11 +17,14 @@ Page({
       const trend = await dataService.getTrend(5, profile.id);
       const activeTask = dataService.getActiveTask();
       const latestReport = await dataService.getLatestReport();
+      const outlines = await dataService.getTeachingOutlines(profile.id);
+      const latestOutline = outlines.length ? outlines[outlines.length - 1] : null;
 
       this.setData({
         profile,
         completion: dataService.getProfileCompletion(profile),
         latestReport,
+        latestOutline,
         activeTask: activeTask ? this.formatTask(activeTask) : null,
         trendItems: trend.items,
         trendSummary: trend.summary
@@ -48,6 +52,10 @@ Page({
     wx.switchTab({ url: "/pages/profile/profile" });
   },
 
+  goRoleSelect() {
+    wx.reLaunch({ url: "/pages/role-select/role-select" });
+  },
+
   goUpload() {
     wx.navigateTo({ url: "/pages/upload/upload" });
   },
@@ -70,5 +78,11 @@ Page({
 
   goTrends() {
     wx.switchTab({ url: "/pages/trends/trends" });
+  },
+
+  goStudentPlan() {
+    const outline = this.data.latestOutline;
+    if (!outline) return;
+    wx.navigateTo({ url: `/pages/student-plan/student-plan?id=${outline.id}` });
   }
 });

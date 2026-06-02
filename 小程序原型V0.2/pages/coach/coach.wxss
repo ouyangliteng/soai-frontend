@@ -32,3 +32,40 @@
   font-weight: 800;
 }
 
+.student-row-left {
+  flex: 0 0 auto;
+}
+
+.student-avatar {
+  width: 84rpx;
+  height: 84rpx;
+  min-width: 84rpx;
+  max-width: 84rpx;
+  border-radius: 999rpx;
+  background: #edf4ff;
+}
+
+.avatar-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0f67ff;
+  font-size: 32rpx;
+  font-weight: 800;
+}
+
+.student-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+
+.mini-tag {
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  color: #344054;
+  background: #f3f6fb;
+  font-size: 22rpx;
+  font-weight: 700;
+}

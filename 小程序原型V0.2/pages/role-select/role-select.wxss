@@ -1,0 +1,92 @@
+.role-page {
+  padding-top: 72rpx;
+}
+
+.brand-block {
+  padding: 42rpx 34rpx;
+  border-radius: 18rpx;
+  color: #ffffff;
+  background: linear-gradient(135deg, #08111f 0%, #12335d 58%, #0f67ff 100%);
+  box-shadow: 0 18rpx 40rpx rgba(8, 17, 31, 0.16);
+}
+
+.brand-kicker {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.brand-title {
+  margin-top: 16rpx;
+  font-size: 44rpx;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.brand-subtitle {
+  margin-top: 18rpx;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 26rpx;
+  line-height: 1.55;
+}
+
+.role-card {
+  margin-top: 28rpx;
+  padding: 34rpx;
+  border: 1rpx solid #e6ebf2;
+  border-radius: 18rpx;
+  background: #ffffff;
+  box-shadow: 0 8rpx 28rpx rgba(15, 23, 42, 0.05);
+}
+
+.login-type-row {
+  margin-top: 24rpx;
+}
+
+.picker-box {
+  min-height: 84rpx;
+  box-sizing: border-box;
+  padding: 22rpx;
+  border: 1rpx solid #d9e0ea;
+  border-radius: 14rpx;
+  color: #111827;
+  background: #ffffff;
+  font-size: 28rpx;
+}
+
+.student-card {
+  border-left: 8rpx solid #0f67ff;
+}
+
+.coach-card {
+  border-left: 8rpx solid #111827;
+}
+
+.role-title {
+  color: #111827;
+  font-size: 34rpx;
+  font-weight: 800;
+}
+
+.role-desc {
+  margin-top: 14rpx;
+  color: #667085;
+  font-size: 26rpx;
+  line-height: 1.55;
+}
+
+.role-action {
+  display: inline-flex;
+  margin-top: 24rpx;
+  padding: 14rpx 22rpx;
+  border-radius: 999rpx;
+  color: #0f67ff;
+  background: #edf4ff;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.current-role {
+  margin-top: 30rpx;
+  text-align: center;
+}

@@ -1,1 +1,138 @@
+.pose-card {
+  position: relative;
+  overflow: hidden;
+  margin-top: 22rpx;
+  padding: 28rpx;
+  border: 1rpx solid #dce8ff;
+  border-radius: 18rpx;
+  background: linear-gradient(180deg, #f7fbff 0%, #eef5ff 100%);
+}
 
+.scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 78rpx;
+  height: 4rpx;
+  background: linear-gradient(90deg, rgba(15, 103, 255, 0), rgba(15, 103, 255, 0.72), rgba(15, 103, 255, 0));
+}
+
+.pose-stage {
+  position: relative;
+  height: 300rpx;
+  border-radius: 16rpx;
+  background:
+    linear-gradient(90deg, rgba(15, 103, 255, 0.08) 1rpx, transparent 1rpx),
+    linear-gradient(180deg, rgba(15, 103, 255, 0.08) 1rpx, transparent 1rpx);
+  background-size: 48rpx 48rpx;
+}
+
+.joint {
+  position: absolute;
+  z-index: 2;
+  width: 20rpx;
+  height: 20rpx;
+  border: 5rpx solid #28c2ff;
+  border-radius: 999rpx;
+  background: #ffffff;
+  box-shadow: 0 0 18rpx rgba(40, 194, 255, 0.45);
+}
+
+.head {
+  left: 322rpx;
+  top: 42rpx;
+  width: 42rpx;
+  height: 42rpx;
+}
+
+.shoulder-left {
+  left: 286rpx;
+  top: 108rpx;
+}
+
+.shoulder-right {
+  left: 370rpx;
+  top: 106rpx;
+}
+
+.hip-left {
+  left: 300rpx;
+  top: 178rpx;
+}
+
+.hip-right {
+  left: 362rpx;
+  top: 178rpx;
+}
+
+.knee-left {
+  left: 250rpx;
+  top: 244rpx;
+}
+
+.knee-right {
+  left: 414rpx;
+  top: 238rpx;
+}
+
+.bone {
+  position: absolute;
+  z-index: 1;
+  height: 7rpx;
+  border-radius: 999rpx;
+  background: #0f67ff;
+  transform-origin: left center;
+}
+
+.torso {
+  left: 315rpx;
+  top: 140rpx;
+  width: 92rpx;
+  transform: rotate(72deg);
+}
+
+.arm-left {
+  left: 294rpx;
+  top: 118rpx;
+  width: 88rpx;
+  transform: rotate(154deg);
+}
+
+.arm-right {
+  left: 382rpx;
+  top: 116rpx;
+  width: 94rpx;
+  transform: rotate(22deg);
+}
+
+.leg-left {
+  left: 310rpx;
+  top: 190rpx;
+  width: 94rpx;
+  transform: rotate(132deg);
+}
+
+.leg-right {
+  left: 372rpx;
+  top: 190rpx;
+  width: 88rpx;
+  transform: rotate(54deg);
+}
+
+.horse-line {
+  position: absolute;
+  left: 120rpx;
+  right: 96rpx;
+  bottom: 36rpx;
+  height: 18rpx;
+  border-radius: 999rpx;
+  background: #111827;
+  opacity: 0.82;
+}
+
+.pose-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 22rpx;
+}

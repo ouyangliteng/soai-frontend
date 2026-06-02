@@ -18,6 +18,17 @@
     </view>
     <view class="divider"></view>
 
+    <view class="avatar-row">
+      <image class="avatar" wx:if="{{form.avatarUrl}}" src="{{form.avatarUrl}}" mode="aspectFill"></image>
+      <view class="avatar avatar-empty" wx:else>{{form.name ? form.name.slice(0, 1) : '学'}}</view>
+      <view style="flex: 1;">
+        <view class="card-title">学员头像</view>
+        <view class="muted" style="margin-top: 8rpx;">头像会同步到学员首页和教练端学员资料。</view>
+      </view>
+      <view class="btn btn-secondary avatar-btn" bindtap="chooseAvatar">设置头像</view>
+    </view>
+    <view class="divider"></view>
+
     <view class="field">
       <view class="field-label">姓名</view>
       <input class="input" value="{{form.name}}" data-field="name" bindinput="onInput" placeholder="请输入学员姓名" />
@@ -43,8 +54,10 @@
       <input class="input" value="{{form.currentLevel}}" data-field="currentLevel" bindinput="onInput" placeholder="如：初级进阶" />
     </view>
     <view class="field">
-      <view class="field-label">所属教练</view>
-      <input class="input" value="{{form.coachName}}" data-field="coachName" bindinput="onInput" placeholder="请输入教练姓名" />
+      <view class="field-label">绑定教练</view>
+      <picker mode="selector" range="{{coachNames}}" value="{{selectedCoachIndex}}" bindchange="onCoachPicker">
+        <view class="picker-box">{{coachNames[selectedCoachIndex] || '请选择教练'}}</view>
+      </picker>
     </view>
     <view class="field">
       <view class="field-label">所属俱乐部</view>

@@ -1,33 +1,133 @@
+const SESSION_KEY = "soai_current_session";
 const PROFILE_KEY = "soai_student_profile";
+const STUDENTS_KEY = "soai_students";
+const COACHES_KEY = "soai_coaches";
 const REPORTS_KEY = "soai_training_reports";
 const TASK_KEY = "soai_active_analysis_task";
 const ASSIGNMENTS_KEY = "soai_training_assignments";
 const TEACHING_OUTLINES_KEY = "soai_teaching_outlines";
 
-const seedProfile = {
-  id: "student_demo",
-  name: "王小涵",
-  age: 14,
-  heightCm: 160,
-  weightKg: 48,
-  ridingYears: 2,
-  currentLevel: "初级进阶",
-  coachName: "李教练",
-  clubName: "SOAI 示例马术俱乐部"
+const seedCoach = {
+  id: "coach_demo",
+  wxOpenId: "mock_wx_coach_demo",
+  name: "李教练",
+  phone: "13800000001",
+  clubName: "SOAI 示例马术俱乐部",
+  loginType: "coach_wechat",
+  verified: true
 };
 
-const seedReports = [
-  createReport("report_001", "2026-05-18", 76, 72, 78, 74, 2),
-  createReport("report_002", "2026-05-22", 79, 76, 80, 77, 2),
-  createReport("report_003", "2026-05-26", 81, 78, 83, 79, 1),
-  createReport("report_004", "2026-05-30", 82, 80, 84, 78, 1)
+const companyCoach = {
+  id: "coach_company",
+  wxOpenId: "mock_wx_company_soai",
+  name: "SOAI 公司教练号",
+  phone: "400-SOAI",
+  clubName: "SOAI 官方教学中心",
+  loginType: "company_wechat",
+  verified: true
+};
+
+const seedStudents = [
+  {
+    id: "student_demo",
+    wxOpenId: "mock_wx_student_demo",
+    name: "王小涵",
+    avatarUrl: "",
+    age: 14,
+    heightCm: 160,
+    weightKg: 48,
+    ridingYears: 2,
+    currentLevel: "初级进阶",
+    coachId: "coach_demo",
+    coachName: "李教练",
+    clubName: "SOAI 示例马术俱乐部"
+  },
+  {
+    id: "student_chen",
+    wxOpenId: "mock_wx_student_chen",
+    name: "陈予安",
+    avatarUrl: "",
+    age: 12,
+    heightCm: 152,
+    weightKg: 42,
+    ridingYears: 1,
+    currentLevel: "基础快步",
+    coachId: "coach_demo",
+    coachName: "李教练",
+    clubName: "SOAI 示例马术俱乐部"
+  },
+  {
+    id: "student_lin",
+    wxOpenId: "mock_wx_student_lin",
+    name: "林嘉怡",
+    avatarUrl: "",
+    age: 16,
+    heightCm: 166,
+    weightKg: 50,
+    ridingYears: 3,
+    currentLevel: "初级路线",
+    coachId: "coach_demo",
+    coachName: "李教练",
+    clubName: "SOAI 示例马术俱乐部"
+  }
 ];
 
-function createReport(id, trainingDate, overallScore, postureControl, rhythmControl, stability, riskCount) {
+function ensureSeedData() {
+  if (!wx.getStorageSync(COACHES_KEY)) {
+    wx.setStorageSync(COACHES_KEY, [seedCoach, companyCoach]);
+  }
+  if (!wx.getStorageSync(STUDENTS_KEY)) {
+    wx.setStorageSync(STUDENTS_KEY, seedStudents);
+  } else {
+    const students = mergeById(wx.getStorageSync(STUDENTS_KEY), seedStudents);
+    wx.setStorageSync(STUDENTS_KEY, students);
+  }
+  if (!wx.getStorageSync(PROFILE_KEY)) {
+    wx.setStorageSync(PROFILE_KEY, seedStudents[0]);
+  }
+  if (!wx.getStorageSync(REPORTS_KEY)) {
+    wx.setStorageSync(REPORTS_KEY, buildSeedReports());
+  } else {
+    const reports = wx.getStorageSync(REPORTS_KEY);
+    const missingReports = buildSeedReports().filter((report) => !reports.some((item) => item.id === report.id));
+    wx.setStorageSync(REPORTS_KEY, reports.concat(missingReports));
+  }
+  if (!wx.getStorageSync(ASSIGNMENTS_KEY)) {
+    wx.setStorageSync(ASSIGNMENTS_KEY, []);
+  }
+  if (!wx.getStorageSync(TEACHING_OUTLINES_KEY)) {
+    wx.setStorageSync(TEACHING_OUTLINES_KEY, []);
+  }
+  if (!wx.getStorageSync(SESSION_KEY)) {
+    wx.setStorageSync(SESSION_KEY, {
+      role: "student",
+      wxOpenId: seedStudents[0].wxOpenId,
+      studentId: seedStudents[0].id,
+      coachId: seedStudents[0].coachId,
+      registered: true
+    });
+  }
+}
+
+function buildSeedReports() {
+  return [
+    createReport(seedStudents[0], "report_001", "2026-05-18", 76, 72, 78, 74, 2),
+    createReport(seedStudents[0], "report_002", "2026-05-22", 79, 76, 80, 77, 2),
+    createReport(seedStudents[0], "report_003", "2026-05-26", 81, 78, 83, 79, 1),
+    createReport(seedStudents[0], "report_004", "2026-05-30", 82, 80, 84, 78, 1),
+    createReport(seedStudents[1], "report_chen_001", "2026-05-24", 73, 70, 75, 71, 2),
+    createReport(seedStudents[1], "report_chen_002", "2026-05-31", 75, 72, 77, 73, 1),
+    createReport(seedStudents[2], "report_lin_001", "2026-05-21", 84, 82, 86, 83, 1),
+    createReport(seedStudents[2], "report_lin_002", "2026-05-29", 86, 84, 88, 85, 1)
+  ];
+}
+
+function createReport(student, id, trainingDate, overallScore, postureControl, rhythmControl, stability, riskCount) {
   return {
     id,
+    studentId: student.id,
     trainingDate,
-    studentSnapshot: seedProfile,
+    studentSnapshot: { ...student },
     summary: {
       overallScore,
       oneLineConclusion: "本次训练节奏较稳定，转弯阶段身体控制仍需加强。",
@@ -64,52 +164,155 @@ function createReport(id, trainingDate, overallScore, postureControl, rhythmCont
       "练习小腿位置稳定性。",
       "转弯前提前看向行进方向。"
     ],
-    coachReviewStatus: id === "report_004" ? "pending" : "reviewed",
-    coachReview: id === "report_004" ? "" : "AI 判断基本准确，下次继续关注轻快步节奏。"
+    coachReviewStatus: id.endsWith("004") || id.endsWith("002") ? "pending" : "reviewed",
+    coachReview: id.endsWith("004") || id.endsWith("002") ? "" : "AI 判断基本准确，下次继续关注轻快步节奏。"
   };
 }
 
-function ensureSeedData() {
-  if (!wx.getStorageSync(PROFILE_KEY)) {
-    wx.setStorageSync(PROFILE_KEY, seedProfile);
-  }
-  if (!wx.getStorageSync(REPORTS_KEY)) {
-    wx.setStorageSync(REPORTS_KEY, seedReports);
-  }
-  if (!wx.getStorageSync(ASSIGNMENTS_KEY)) {
-    wx.setStorageSync(ASSIGNMENTS_KEY, []);
-  }
-  if (!wx.getStorageSync(TEACHING_OUTLINES_KEY)) {
-    wx.setStorageSync(TEACHING_OUTLINES_KEY, []);
-  }
+function loginAsStudent(payload = {}) {
+  const wxOpenId = payload.wxOpenId || "mock_wx_student_demo";
+  const coach = getCoaches().find((item) => item.id === payload.coachId) || seedCoach;
+  const students = getStudents();
+  const existing = students.find((student) => student.wxOpenId === wxOpenId) || students.find((student) => student.id === payload.studentId);
+  const student = {
+    ...(existing || {}),
+    id: existing ? existing.id : `student_${Date.now()}`,
+    wxOpenId,
+    name: payload.name || (existing && existing.name) || "新学员",
+    avatarUrl: payload.avatarUrl || (existing && existing.avatarUrl) || "",
+    age: payload.age || (existing && existing.age) || "",
+    heightCm: payload.heightCm || (existing && existing.heightCm) || "",
+    weightKg: payload.weightKg || (existing && existing.weightKg) || "",
+    ridingYears: payload.ridingYears || (existing && existing.ridingYears) || "",
+    currentLevel: payload.currentLevel || (existing && existing.currentLevel) || "待评估",
+    coachId: coach.id,
+    coachName: coach.name,
+    clubName: payload.clubName || coach.clubName
+  };
+  saveStudents(upsertById(students, student));
+  setCurrentSession({
+    role: "student",
+    wxOpenId,
+    studentId: student.id,
+    coachId: coach.id,
+    registered: true
+  });
+  wx.setStorageSync(PROFILE_KEY, student);
+  return student;
+}
+
+function loginAsCoach(payload = {}) {
+  const wxOpenId = payload.wxOpenId || (payload.loginType === "company_wechat" ? companyCoach.wxOpenId : seedCoach.wxOpenId);
+  const coaches = getCoaches();
+  const existing = coaches.find((coach) => coach.wxOpenId === wxOpenId) || coaches.find((coach) => coach.id === payload.coachId);
+  const coach = {
+    ...(existing || {}),
+    id: existing ? existing.id : `coach_${Date.now()}`,
+    wxOpenId,
+    name: payload.name || (existing && existing.name) || "教练",
+    phone: payload.phone || (existing && existing.phone) || "",
+    clubName: payload.clubName || (existing && existing.clubName) || "SOAI 示例马术俱乐部",
+    loginType: payload.loginType || (existing && existing.loginType) || "coach_wechat",
+    verified: true
+  };
+  saveCoaches(upsertById(coaches, coach));
+  setCurrentSession({
+    role: "coach",
+    wxOpenId,
+    coachId: coach.id,
+    registered: true
+  });
+  return coach;
+}
+
+function getCurrentSession() {
+  return wx.getStorageSync(SESSION_KEY) || {};
+}
+
+function setCurrentSession(session) {
+  wx.setStorageSync(SESSION_KEY, session);
 }
 
 function getProfile() {
-  return wx.getStorageSync(PROFILE_KEY) || null;
+  const session = getCurrentSession();
+  const students = getStudents();
+  const profile = students.find((student) => student.id === session.studentId) || wx.getStorageSync(PROFILE_KEY) || students[0] || null;
+  if (profile) wx.setStorageSync(PROFILE_KEY, profile);
+  return profile;
 }
 
 function saveProfile(profile) {
-  wx.setStorageSync(PROFILE_KEY, {
+  const previousProfile = getProfile() || seedStudents[0];
+  const coach = getCoaches().find((item) => item.id === (profile.coachId || previousProfile.coachId)) || seedCoach;
+  const nextProfile = {
+    ...previousProfile,
     ...profile,
+    id: previousProfile.id || profile.id || seedStudents[0].id,
+    wxOpenId: previousProfile.wxOpenId || profile.wxOpenId || "mock_wx_student_demo",
+    coachId: coach.id,
+    coachName: coach.name,
+    clubName: profile.clubName || coach.clubName,
     updatedAt: new Date().toISOString()
+  };
+  saveStudents(upsertById(getStudents(), nextProfile));
+  setCurrentSession({
+    ...getCurrentSession(),
+    role: "student",
+    wxOpenId: nextProfile.wxOpenId,
+    studentId: nextProfile.id,
+    coachId: nextProfile.coachId,
+    registered: true
   });
+  const reports = getAllReports().map((report) => {
+    if (report.studentId !== nextProfile.id) return report;
+    return {
+      ...report,
+      studentSnapshot: {
+        ...report.studentSnapshot,
+        ...nextProfile
+      }
+    };
+  });
+  wx.setStorageSync(PROFILE_KEY, nextProfile);
+  wx.setStorageSync(REPORTS_KEY, reports);
 }
 
-function getReports() {
+function getStudents() {
+  return wx.getStorageSync(STUDENTS_KEY) || [];
+}
+
+function saveStudents(students) {
+  wx.setStorageSync(STUDENTS_KEY, students);
+}
+
+function getCoaches() {
+  return wx.getStorageSync(COACHES_KEY) || [];
+}
+
+function saveCoaches(coaches) {
+  wx.setStorageSync(COACHES_KEY, coaches);
+}
+
+function getAllReports() {
   return wx.getStorageSync(REPORTS_KEY) || [];
 }
 
-function getLatestReport() {
-  const reports = getReports();
+function getReports(studentId) {
+  const targetStudentId = studentId || (getProfile() && getProfile().id);
+  return getAllReports().filter((report) => !targetStudentId || report.studentId === targetStudentId);
+}
+
+function getLatestReport(studentId) {
+  const reports = getReports(studentId);
   return reports[reports.length - 1] || null;
 }
 
 function getReport(id) {
-  return getReports().find((report) => report.id === id) || getLatestReport();
+  return getAllReports().find((report) => report.id === id) || getLatestReport();
 }
 
 function saveCoachReview(reportId, comment, focusItems = []) {
-  const reports = getReports();
+  const reports = getAllReports();
   const nextReports = reports.map((report) => {
     if (report.id !== reportId) return report;
     return {
@@ -142,8 +345,9 @@ function saveAssignment(report, comment, focusItems) {
   wx.setStorageSync(ASSIGNMENTS_KEY, assignments.concat(nextAssignment));
 }
 
-function getAssignments() {
-  return wx.getStorageSync(ASSIGNMENTS_KEY) || [];
+function getAssignments(studentId) {
+  const targetStudentId = studentId || (getProfile() && getProfile().id);
+  return (wx.getStorageSync(ASSIGNMENTS_KEY) || []).filter((assignment) => !targetStudentId || assignment.studentId === targetStudentId);
 }
 
 function generateTeachingOutline(reportId, payload = {}) {
@@ -155,6 +359,7 @@ function generateTeachingOutline(reportId, payload = {}) {
     id: `outline_${Date.now()}`,
     reportId: report.id,
     studentId: report.studentSnapshot.id,
+    coachId: report.studentSnapshot.coachId,
     title: `${weeks} 周阶段性教学任务大纲`,
     coachObservation: payload.coachObservation || "教练尚未补充学员认知，建议生成后由教练结合现场情况修订。",
     stageGoal: payload.stageGoal || `未来 ${weeks} 周优先提升${focusItems.slice(0, 2).join("、")}。`,
@@ -162,7 +367,7 @@ function generateTeachingOutline(reportId, payload = {}) {
     aiBasis: [
       `本次主要问题：${report.problemPoints[0].title}`,
       `风险关注：${report.riskPoints[0] ? report.riskPoints[0].title : "本次未标记中高风险点"}`,
-      `趋势依据：${getTrend(5).summary}`
+      `趋势依据：${getTrend(5, report.studentId).summary}`
     ],
     safetyBoundary: "AI 只生成教学辅助大纲，不替代教练现场判断。涉及风险动作、马匹状态和训练强度时，必须由教练确认后执行。",
     weeklyPlan: Array.from({ length: weeks }).map((_, index) => buildWeeklyPlanItem(index, focusItems, report)),
@@ -181,24 +386,31 @@ function generateTeachingOutline(reportId, payload = {}) {
   return outline;
 }
 
-function getTeachingOutlines() {
-  return wx.getStorageSync(TEACHING_OUTLINES_KEY) || [];
+function getTeachingOutlines(studentId) {
+  const targetStudentId = studentId || (getProfile() && getProfile().id);
+  return (wx.getStorageSync(TEACHING_OUTLINES_KEY) || []).filter((outline) => !targetStudentId || outline.studentId === targetStudentId);
 }
 
 function addReportFromTask(task) {
-  const reports = getReports();
-  const latest = getLatestReport();
+  const reports = getAllReports();
+  const profile = getProfile() || seedStudents[0];
+  const latest = getLatestReport(profile.id);
   const nextScore = Math.min(95, latest ? latest.summary.overallScore + 2 : 78);
   const today = new Date();
   const trainingDate = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-  const report = createReport(`report_${Date.now()}`, trainingDate, nextScore, nextScore - 2, nextScore + 1, nextScore - 3, 1);
+  const report = createReport(profile, `report_${Date.now()}`, trainingDate, nextScore, nextScore - 2, nextScore + 1, nextScore - 3, 1);
   report.videoName = task.videoName;
+  report.videoPath = task.videoPath || "";
+  report.videoDurationSec = task.durationSec || 0;
+  report.videoSizeMb = task.sizeMb || 0;
+  report.videoExcerptStartSec = 0;
+  report.videoExcerptEndSec = Math.min(60, task.durationSec || 60);
   wx.setStorageSync(REPORTS_KEY, reports.concat(report));
   return report;
 }
 
-function getTrend(limit = 5) {
-  const reports = getReports().slice(-limit);
+function getTrend(limit = 5, studentId) {
+  const reports = getReports(studentId).slice(-limit);
   if (reports.length < 2) {
     return {
       items: reports,
@@ -217,50 +429,60 @@ function getTrend(limit = 5) {
 }
 
 function getCoachDashboard() {
-  const reports = getReports();
+  const session = getCurrentSession();
+  const coachId = session.coachId || seedCoach.id;
+  const coach = getCoaches().find((item) => item.id === coachId);
+  const canViewAllStudents = coach && coach.loginType === "company_wechat";
+  const students = getStudents().filter((student) => canViewAllStudents || student.coachId === coachId);
+  const studentIds = students.map((student) => student.id);
+  const reports = getAllReports().filter((report) => studentIds.includes(report.studentId));
   const pendingReports = reports
     .filter((report) => report.coachReviewStatus !== "reviewed")
     .map(formatCoachReport)
     .sort((a, b) => b.priorityScore - a.priorityScore);
   const reviewedTodayCount = reports.filter((report) => report.coachReviewedAt && isToday(report.coachReviewedAt)).length;
   const highRiskCount = reports.filter((report) => getReportRiskLevel(report) !== "low").length;
-  const latestReport = getLatestReport();
+  const outlines = wx.getStorageSync(TEACHING_OUTLINES_KEY) || [];
 
   return {
     stats: {
       pendingReviewCount: pendingReports.length,
       highRiskCount,
       reviewedTodayCount,
-      activeStudentCount: 1,
-      secondUploadStudentCount: reports.length >= 2 ? 1 : 0
+      activeStudentCount: students.length,
+      secondUploadStudentCount: students.filter((student) => getReports(student.id).length >= 2).length,
+      activePlanCount: outlines.filter((outline) => studentIds.includes(outline.studentId)).length
     },
     pendingReports,
-    students: [
-      {
-        ...seedProfile,
+    students: students.map((student) => {
+      const latestReport = getLatestReport(student.id);
+      const studentOutlines = outlines.filter((outline) => outline.studentId === student.id);
+      return {
+        ...student,
         latestReportId: latestReport ? latestReport.id : "",
         latestTrainingDate: latestReport ? latestReport.trainingDate : "",
         latestScore: latestReport ? latestReport.summary.overallScore : 0,
-        trendText: getTrend(5).summary,
-        pendingReviewCount: pendingReports.length
-      }
-    ]
+        trendText: getTrend(5, student.id).summary,
+        pendingReviewCount: reports.filter((report) => report.studentId === student.id && report.coachReviewStatus !== "reviewed").length,
+        planCount: studentOutlines.length
+      };
+    })
   };
 }
 
 function getCoachStudentDetail(studentId) {
-  const profile = getProfile();
-  const reports = getReports();
+  const profile = getStudents().find((student) => student.id === studentId) || getProfile() || seedStudents[0];
+  const reports = getReports(profile.id);
   const repeatedProblems = collectTopTitles(reports, "problemPoints");
   const repeatedRisks = collectTopTitles(reports, "riskPoints");
 
   return {
-    profile: profile && profile.id === studentId ? profile : seedProfile,
-    latestReport: getLatestReport(),
-    trend: getTrend(5),
+    profile,
+    latestReport: getLatestReport(profile.id),
+    trend: getTrend(5, profile.id),
     reports: reports.slice().reverse(),
-    assignments: getAssignments(),
-    teachingOutlines: getTeachingOutlines().filter((outline) => outline.studentId === (profile && profile.id)),
+    assignments: getAssignments(profile.id),
+    teachingOutlines: getTeachingOutlines(profile.id),
     repeatedProblems,
     repeatedRisks
   };
@@ -310,6 +532,7 @@ function formatCoachReport(report) {
   const priorityScore = (riskLevel === "high" ? 100 : riskLevel === "medium" ? 60 : 20) + (lowScore ? 40 : 0);
   return {
     id: report.id,
+    studentId: report.studentId,
     studentName: report.studentSnapshot.name,
     currentLevel: report.studentSnapshot.currentLevel,
     trainingDate: report.trainingDate,
@@ -361,9 +584,19 @@ function clearActiveTask() {
 
 function getProfileCompletion(profile) {
   if (!profile) return 0;
-  const fields = ["name", "age", "heightCm", "weightKg", "ridingYears", "currentLevel", "coachName", "clubName"];
+  const fields = ["avatarUrl", "name", "age", "heightCm", "weightKg", "ridingYears", "currentLevel", "coachName", "clubName"];
   const complete = fields.filter((field) => profile[field] !== undefined && profile[field] !== "").length;
   return Math.round((complete / fields.length) * 100);
+}
+
+function mergeById(current, seeds) {
+  return seeds.reduce((items, seed) => upsertById(items, { ...seed, ...(items.find((item) => item.id === seed.id) || {}) }), current || []);
+}
+
+function upsertById(items, item) {
+  const exists = items.some((current) => current.id === item.id);
+  if (exists) return items.map((current) => current.id === item.id ? item : current);
+  return items.concat(item);
 }
 
 function pad(value) {
@@ -378,6 +611,11 @@ function clampWeeks(value) {
 
 module.exports = {
   ensureSeedData,
+  loginAsStudent,
+  loginAsCoach,
+  getCurrentSession,
+  getCoaches,
+  getStudents,
   getProfile,
   saveProfile,
   getReports,

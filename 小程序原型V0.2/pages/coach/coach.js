@@ -24,5 +24,9 @@ Page({
   openStudent(event) {
     const id = event.currentTarget.dataset.id;
     wx.navigateTo({ url: `/pages/coach-student/coach-student?id=${id}` });
+  },
+
+  goRoleSelect() {
+    wx.reLaunch({ url: "/pages/role-select/role-select" });
   }
 });

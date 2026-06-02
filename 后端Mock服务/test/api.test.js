@@ -29,7 +29,7 @@ async function main() {
     const uploadToken = await request(baseUrl, "POST", "/api/videos/upload-token", {
       fileName: "training.mp4",
       sizeMb: 82.5,
-      durationSec: 68,
+      durationSec: 58,
       format: "mp4",
       analysisConsent: true,
       caseConsent: false

@@ -4,6 +4,30 @@
     <view class="hero-subtitle">系统会识别训练中的姿态、节奏、稳定性和可能需要教练关注的风险点。</view>
   </view>
 
+  <view class="pose-card">
+    <view class="scan-line"></view>
+    <view class="pose-stage">
+      <view class="joint head"></view>
+      <view class="joint shoulder-left"></view>
+      <view class="joint shoulder-right"></view>
+      <view class="joint hip-left"></view>
+      <view class="joint hip-right"></view>
+      <view class="joint knee-left"></view>
+      <view class="joint knee-right"></view>
+      <view class="bone torso"></view>
+      <view class="bone arm-left"></view>
+      <view class="bone arm-right"></view>
+      <view class="bone leg-left"></view>
+      <view class="bone leg-right"></view>
+      <view class="horse-line"></view>
+    </view>
+    <view class="pose-meta">
+      <view class="tag">姿态识别</view>
+      <view class="tag">节奏检测</view>
+      <view class="tag">风险关注</view>
+    </view>
+  </view>
+
   <view class="card">
     <view class="row">
       <view>
@@ -26,4 +50,3 @@
 
   <view class="btn btn-ghost" style="margin-top: 28rpx;" bindtap="backHome">返回首页</view>
 </view>
-

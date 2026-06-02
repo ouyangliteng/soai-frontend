@@ -1,5 +1,6 @@
 {
   "pages": [
+    "pages/role-select/role-select",
     "pages/home/home",
     "pages/upload/upload",
     "pages/privacy/privacy",
@@ -9,6 +10,7 @@
     "pages/coach/coach",
     "pages/coach-student/coach-student",
     "pages/teaching-outline/teaching-outline",
+    "pages/student-plan/student-plan",
     "pages/trends/trends",
     "pages/profile/profile"
   ],

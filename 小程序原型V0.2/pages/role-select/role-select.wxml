@@ -1,0 +1,58 @@
+<view class="page role-page">
+  <view class="brand-block">
+    <view class="brand-kicker">SOAI 马术 AI 训练</view>
+    <view class="brand-title">微信登录后进入对应端</view>
+    <view class="brand-subtitle">学员用自己的微信号注册并绑定教练；教练可用个人微信号或公司微信号登录，查看自己名下学员的训练报告和计划。</view>
+  </view>
+
+  <view class="role-card student-card">
+    <view class="role-title">学员注册 / 登录</view>
+    <view class="role-desc">体验版使用模拟微信身份，正式版会接入微信登录 openid。</view>
+
+    <view class="field">
+      <view class="field-label">模拟微信 ID</view>
+      <input class="input" value="{{studentForm.wxOpenId}}" data-field="wxOpenId" bindinput="onStudentInput" />
+    </view>
+    <view class="field">
+      <view class="field-label">学员姓名</view>
+      <input class="input" value="{{studentForm.name}}" data-field="name" bindinput="onStudentInput" />
+    </view>
+    <view class="field">
+      <view class="field-label">当前等级</view>
+      <input class="input" value="{{studentForm.currentLevel}}" data-field="currentLevel" bindinput="onStudentInput" />
+    </view>
+    <view class="field">
+      <view class="field-label">绑定教练</view>
+      <picker mode="selector" range="{{coachNames}}" value="{{selectedCoachIndex}}" bindchange="onCoachPicker">
+        <view class="picker-box">{{coachNames[selectedCoachIndex] || '请选择教练'}}</view>
+      </picker>
+    </view>
+
+    <view class="btn btn-primary" style="margin-top: 26rpx;" bindtap="loginStudent">微信注册并进入学员端</view>
+  </view>
+
+  <view class="role-card coach-card">
+    <view class="role-title">教练登录</view>
+    <view class="role-desc">教练端按微信身份显示名下学员。公司微信号可作为官方教学账号使用。</view>
+
+    <view class="row login-type-row">
+      <view class="btn {{coachForm.loginType === 'coach_wechat' ? 'btn-primary' : 'btn-ghost'}}" style="flex: 1;" data-type="coach_wechat" bindtap="setCoachLoginType">教练微信</view>
+      <view class="btn {{coachForm.loginType === 'company_wechat' ? 'btn-primary' : 'btn-ghost'}}" style="flex: 1;" data-type="company_wechat" bindtap="setCoachLoginType">公司微信</view>
+    </view>
+
+    <view class="field">
+      <view class="field-label">模拟微信 ID</view>
+      <input class="input" value="{{coachForm.wxOpenId}}" data-field="wxOpenId" bindinput="onCoachInput" />
+    </view>
+    <view class="field">
+      <view class="field-label">教练 / 公司账号名称</view>
+      <input class="input" value="{{coachForm.name}}" data-field="name" bindinput="onCoachInput" />
+    </view>
+
+    <view class="btn btn-primary" style="margin-top: 26rpx;" bindtap="loginCoach">微信登录并进入教练端</view>
+  </view>
+
+  <view class="muted current-role" wx:if="{{currentRole}}">
+    当前登录身份：{{currentRole === 'coach' ? '教练端' : '学员端'}}。内测阶段可回到这里切换模拟账号。
+  </view>
+</view>

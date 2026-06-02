@@ -19,6 +19,24 @@ function getProfileCompletion(profile) {
   return store.getProfileCompletion(profile);
 }
 
+function getCurrentSession() {
+  return store.getCurrentSession();
+}
+
+function getCoaches() {
+  return store.getCoaches();
+}
+
+async function loginAsStudent(payload = {}) {
+  if (!isApiMode()) return store.loginAsStudent(payload);
+  return store.loginAsStudent(payload);
+}
+
+async function loginAsCoach(payload = {}) {
+  if (!isApiMode()) return store.loginAsCoach(payload);
+  return store.loginAsCoach(payload);
+}
+
 async function getProfile() {
   if (!isApiMode()) return store.getProfile();
   const res = await api.getProfile();
@@ -49,7 +67,7 @@ async function getReport(reportId) {
 }
 
 async function getTrend(limit = 5, studentId) {
-  if (!isApiMode()) return normalizeTrend(store.getTrend(limit));
+  if (!isApiMode()) return normalizeTrend(store.getTrend(limit, studentId));
   const profile = studentId ? { id: studentId } : await getProfile();
   const res = await api.getTrend(profile.id, limit);
   return normalizeTrend(res);
@@ -71,6 +89,9 @@ async function createUploadAndAnalysisTask(video) {
       progress: 0,
       progressText: "训练视频已上传，等待 AI 分析",
       videoName: video.name,
+      videoPath: video.path,
+      durationSec: video.durationSec,
+      sizeMb: video.sizeMb,
       analysisConsent: Boolean(video.analysisConsent),
       caseConsent: Boolean(video.caseConsent),
       createdAt: new Date().toISOString()
@@ -202,6 +223,15 @@ async function generateTeachingOutline(reportId, payload = {}) {
   if (!isApiMode()) return store.generateTeachingOutline(reportId, payload);
   const res = await api.generateTeachingOutline(reportId, payload);
   return res.outline;
+}
+
+async function getTeachingOutlines(studentId) {
+  if (!isApiMode()) {
+    return store.getTeachingOutlines(studentId);
+  }
+  const profile = studentId ? { id: studentId } : await getProfile();
+  const detail = await api.getCoachStudent(profile.id);
+  return detail.teachingOutlines || [];
 }
 
 async function getCoachReviewDraft(reportId) {
@@ -340,6 +370,10 @@ module.exports = {
   getMode,
   setMode,
   isApiMode,
+  getCurrentSession,
+  getCoaches,
+  loginAsStudent,
+  loginAsCoach,
   getProfileCompletion,
   getProfile,
   saveProfile,
@@ -355,6 +389,7 @@ module.exports = {
   getCoachStudentDetail,
   saveCoachReview,
   generateTeachingOutline,
+  getTeachingOutlines,
   getCoachReviewDraft,
   getStudentExplanation,
   getProductSuggestions,

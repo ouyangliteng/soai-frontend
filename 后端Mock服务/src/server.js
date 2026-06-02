@@ -44,7 +44,14 @@ function createServer() {
 
       if (req.method === "POST" && url.pathname === "/api/student/profile") {
         const payload = await readJson(req);
-        Object.assign(db.profile, payload, { updatedAt: new Date().toISOString() });
+        Object.assign(db.profile, payload, { id: db.profile.id, updatedAt: new Date().toISOString() });
+        db.reports.forEach((report) => {
+          report.studentId = db.profile.id;
+          report.studentSnapshot = {
+            ...report.studentSnapshot,
+            ...db.profile
+          };
+        });
         return send(res, 200, { success: true, profileId: db.profile.id, profile: db.profile });
       }
 
@@ -289,11 +296,11 @@ function validateVideo(payload) {
   if (Number(payload.sizeMb) > 300) {
     return { code: "VIDEO_TOO_LARGE", message: "视频文件过大，请压缩或选择较短片段。" };
   }
-  if (Number(payload.durationSec) < 15) {
-    return { code: "VIDEO_TOO_SHORT", message: "视频片段过短，请上传至少 15 秒训练视频。" };
+  if (Number(payload.durationSec) < 10) {
+    return { code: "VIDEO_TOO_SHORT", message: "视频片段过短，请上传至少 10 秒训练视频。" };
   }
-  if (Number(payload.durationSec) > 180) {
-    return { code: "VIDEO_TOO_LONG", message: "视频过长，请截取 3 分钟以内关键训练片段。" };
+  if (Number(payload.durationSec) > 60) {
+    return { code: "VIDEO_TOO_LONG", message: "视频过长，请截取 60 秒以内关键训练片段。" };
   }
   return null;
 }

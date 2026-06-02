@@ -11,6 +11,313 @@
   border-bottom: 0;
 }
 
+.video-card {
+  margin-top: 20rpx;
+  padding: 20rpx;
+  border: 1rpx solid #e6ebf2;
+  border-radius: 16rpx;
+  background: #ffffff;
+  box-shadow: 0 8rpx 28rpx rgba(15, 23, 42, 0.05);
+}
+
+.report-video {
+  width: 100%;
+  height: 360rpx;
+  overflow: hidden;
+  border-radius: 14rpx;
+  background: #111827;
+}
+
+.video-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  min-height: 220rpx;
+  padding: 28rpx;
+  border-radius: 14rpx;
+  background: linear-gradient(135deg, #101828 0%, #344054 100%);
+}
+
+.video-placeholder .card-title,
+.video-placeholder .muted {
+  color: #ffffff;
+}
+
+.video-dot {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 999rpx;
+  background: #28c2ff;
+  box-shadow: 0 0 0 14rpx rgba(40, 194, 255, 0.16);
+}
+
+.video-meta {
+  margin-top: 18rpx;
+}
+
+.pose-report-card {
+  margin-top: 20rpx;
+  padding: 26rpx;
+  border: 1rpx solid #dce8ff;
+  border-radius: 16rpx;
+  background: linear-gradient(180deg, #f7fbff 0%, #eef5ff 100%);
+}
+
+.pose-report-stage {
+  position: relative;
+  height: 560rpx;
+  overflow: hidden;
+  border-radius: 16rpx;
+  background:
+    linear-gradient(180deg, rgba(17, 24, 39, 0) 0%, rgba(17, 24, 39, 0) 99%, rgba(17, 24, 39, 0.06) 100%),
+    #f6f8fb;
+  background-size: 100% 92rpx;
+}
+
+.level-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1rpx;
+  background: rgba(17, 24, 39, 0.08);
+}
+
+.line-head { top: 76rpx; }
+.line-chest { top: 166rpx; }
+.line-hip { top: 276rpx; }
+.line-knee { top: 398rpx; }
+.line-foot { bottom: 42rpx; }
+
+.angle-chip {
+  position: absolute;
+  z-index: 5;
+  max-width: 172rpx;
+  padding: 14rpx 16rpx;
+  border-radius: 18rpx;
+  color: #344054;
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 22rpx;
+  line-height: 1.25;
+  box-shadow: 0 10rpx 30rpx rgba(15, 23, 42, 0.1);
+}
+
+.chip-upper-arm {
+  left: 22rpx;
+  top: 48rpx;
+}
+
+.chip-head {
+  right: 24rpx;
+  top: 52rpx;
+}
+
+.chip-body {
+  right: 44rpx;
+  top: 178rpx;
+}
+
+.chip-forearm {
+  left: 18rpx;
+  top: 292rpx;
+}
+
+.chip-leg {
+  right: 28rpx;
+  bottom: 72rpx;
+}
+
+.side-head,
+.side-neck,
+.side-torso,
+.side-pelvis,
+.side-upper-arm,
+.side-forearm,
+.side-thigh,
+.side-lower-leg,
+.side-foot,
+.guide-line,
+.angle-arc {
+  position: absolute;
+  z-index: 2;
+}
+
+.side-head {
+  left: 306rpx;
+  top: 70rpx;
+  width: 86rpx;
+  height: 86rpx;
+  border-radius: 50% 50% 46% 46%;
+  background: #263033;
+}
+
+.side-neck {
+  left: 334rpx;
+  top: 142rpx;
+  width: 32rpx;
+  height: 54rpx;
+  border-radius: 18rpx;
+  background: #263033;
+}
+
+.side-torso {
+  left: 318rpx;
+  top: 184rpx;
+  width: 84rpx;
+  height: 146rpx;
+  border-radius: 34rpx 28rpx 30rpx 24rpx;
+  background: #263033;
+  transform: rotate(-7deg);
+}
+
+.side-pelvis {
+  left: 298rpx;
+  top: 314rpx;
+  width: 78rpx;
+  height: 72rpx;
+  border-radius: 44rpx 30rpx 36rpx 30rpx;
+  background: #263033;
+  transform: rotate(-16deg);
+}
+
+.side-upper-arm {
+  left: 284rpx;
+  top: 198rpx;
+  width: 34rpx;
+  height: 132rpx;
+  border-radius: 22rpx;
+  background: #263033;
+  transform: rotate(58deg);
+}
+
+.side-forearm {
+  left: 204rpx;
+  top: 280rpx;
+  width: 32rpx;
+  height: 92rpx;
+  border-radius: 22rpx;
+  background: #263033;
+  transform: rotate(54deg);
+}
+
+.side-thigh {
+  left: 286rpx;
+  top: 370rpx;
+  width: 40rpx;
+  height: 140rpx;
+  border-radius: 22rpx;
+  background: #263033;
+  transform: rotate(28deg);
+}
+
+.side-lower-leg {
+  left: 346rpx;
+  top: 446rpx;
+  width: 36rpx;
+  height: 132rpx;
+  border-radius: 22rpx;
+  background: #263033;
+  transform: rotate(-12deg);
+}
+
+.side-foot {
+  left: 330rpx;
+  bottom: 28rpx;
+  width: 88rpx;
+  height: 24rpx;
+  border-radius: 999rpx;
+  background: #263033;
+}
+
+.guide-line {
+  z-index: 4;
+  height: 8rpx;
+  border-radius: 999rpx;
+  background: #5ee0b5;
+  transform-origin: left center;
+}
+
+.guide-spine {
+  left: 350rpx;
+  top: 156rpx;
+  width: 168rpx;
+  transform: rotate(76deg);
+}
+
+.guide-arm {
+  left: 228rpx;
+  top: 318rpx;
+  width: 188rpx;
+  transform: rotate(-28deg);
+}
+
+.guide-leg {
+  left: 306rpx;
+  top: 386rpx;
+  width: 188rpx;
+  transform: rotate(68deg);
+}
+
+.angle-arc {
+  z-index: 1;
+  width: 126rpx;
+  height: 78rpx;
+  border: 14rpx solid #5ee0b5;
+  border-left-color: #ff9f72;
+  border-right-color: #ffcd66;
+  border-bottom: 0;
+  border-radius: 126rpx 126rpx 0 0;
+  opacity: 0.92;
+}
+
+.arc-head {
+  left: 286rpx;
+  top: 62rpx;
+}
+
+.arc-arm {
+  left: 194rpx;
+  top: 252rpx;
+  transform: rotate(-70deg);
+}
+
+.arc-leg {
+  left: 286rpx;
+  bottom: 86rpx;
+  transform: rotate(8deg);
+}
+
+.pose-opinion-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16rpx;
+  margin-top: 22rpx;
+}
+
+.opinion-card {
+  padding: 18rpx;
+  border: 1rpx solid #e6ebf2;
+  border-radius: 14rpx;
+  background: #ffffff;
+}
+
+.opinion-card.warning {
+  border-color: #ffe0b2;
+  background: #fffaf2;
+}
+
+.opinion-title {
+  color: #111827;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.opinion-text {
+  margin-top: 10rpx;
+  color: #667085;
+  font-size: 23rpx;
+  line-height: 1.45;
+}
+
 .textarea {
   width: 100%;
   min-height: 150rpx;

@@ -27,7 +27,7 @@ Page({
       count: 1,
       mediaType: ["video"],
       sourceType: ["album", "camera"],
-      maxDuration: 180,
+      maxDuration: 60,
       success: (res) => {
         const file = res.tempFiles[0];
         const video = {
@@ -65,8 +65,8 @@ Page({
 
   validateVideo(video) {
     if (video.sizeMb > 300) return "视频过大，请选择 300 MB 以内片段";
-    if (video.durationSec < 15) return "视频过短，请至少上传 15 秒";
-    if (video.durationSec > 180) return "视频过长，请截取 3 分钟以内";
+    if (video.durationSec < 10) return "视频过短，请至少上传 10 秒";
+    if (video.durationSec > 60) return "视频过长，请截取 60 秒以内";
     return "";
   },
 

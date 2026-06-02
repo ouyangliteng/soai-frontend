@@ -71,5 +71,15 @@
       <view class="divider"></view>
       <view class="muted">{{outline.nextUploadRequirement}}</view>
     </view>
+
+    <view class="section-title">发送给学员</view>
+    <view class="card">
+      <view class="card-title">分享课程安排</view>
+      <view class="muted" style="margin-top: 14rpx;">生成后学员端首页会同步看到这份阶段计划。也可以生成一张图片，用于微信发送或保存。</view>
+      <view class="btn btn-primary" style="margin-top: 24rpx;" bindtap="exportImage">生成分享图片</view>
+      <view class="btn btn-secondary" style="margin-top: 18rpx;" bindtap="exportPdf">PDF 导出说明</view>
+    </view>
   </view>
+
+  <canvas canvas-id="outlineCanvas" class="export-canvas"></canvas>
 </view>

@@ -1,3 +1,25 @@
+.profile-left {
+  flex: 0 0 auto;
+}
+
+.home-avatar {
+  width: 92rpx;
+  height: 92rpx;
+  min-width: 92rpx;
+  max-width: 92rpx;
+  border-radius: 999rpx;
+  background: #edf4ff;
+}
+
+.avatar-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0f67ff;
+  font-size: 36rpx;
+  font-weight: 800;
+}
+
 .mini-chart {
   display: flex;
   align-items: flex-end;
@@ -26,4 +48,3 @@
   color: #344054;
   font-size: 21rpx;
 }
-

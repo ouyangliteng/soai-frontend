@@ -1,1 +1,41 @@
+.avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
 
+.avatar {
+  width: 104rpx;
+  height: 104rpx;
+  min-width: 104rpx;
+  max-width: 104rpx;
+  flex: 0 0 104rpx;
+  border-radius: 999rpx;
+  background: #edf4ff;
+}
+
+.avatar-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0f67ff;
+  font-size: 40rpx;
+  font-weight: 800;
+}
+
+.avatar-btn {
+  width: 168rpx;
+  height: 72rpx;
+  font-size: 25rpx;
+}
+
+.picker-box {
+  min-height: 84rpx;
+  box-sizing: border-box;
+  padding: 22rpx;
+  border: 1rpx solid #d9e0ea;
+  border-radius: 14rpx;
+  color: #111827;
+  background: #ffffff;
+  font-size: 28rpx;
+}

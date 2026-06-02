@@ -3,6 +3,7 @@
     <view class="hero-title">教练工作台</view>
     <view class="hero-subtitle">优先处理待复核和风险报告，跟踪学员最近训练变化。</view>
   </view>
+  <view class="btn btn-ghost" style="margin-top: 18rpx;" bindtap="goRoleSelect">切换学员 / 教练入口</view>
 
   <view class="stats-grid">
     <view class="stat-card">
@@ -20,6 +21,10 @@
     <view class="stat-card">
       <view class="stat-value">{{stats.activeStudentCount}}</view>
       <view class="stat-label">活跃学员</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-value">{{stats.activePlanCount || 0}}</view>
+      <view class="stat-label">阶段计划</view>
     </view>
   </view>
 
@@ -48,14 +53,21 @@
   <view class="section-title">学员概览</view>
   <view class="card" wx:for="{{students}}" wx:key="id">
     <view class="row">
-      <view>
+      <view class="student-row-left">
+        <image class="student-avatar" wx:if="{{item.avatarUrl}}" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <view class="student-avatar avatar-empty" wx:else>{{item.name ? item.name.slice(0, 1) : '学'}}</view>
+      </view>
+      <view style="flex: 1;">
         <view class="card-title">{{item.name}}</view>
         <view class="muted">{{item.currentLevel}} · 最近 {{item.latestTrainingDate}}</view>
       </view>
       <view class="tag">{{item.latestScore}} 分</view>
     </view>
+    <view class="student-meta-row">
+      <view class="mini-tag">待复核 {{item.pendingReviewCount}}</view>
+      <view class="mini-tag">训练计划 {{item.planCount}}</view>
+    </view>
     <view class="muted" style="margin-top: 18rpx;">{{item.trendText}}</view>
     <view class="btn btn-secondary" style="margin-top: 24rpx;" data-id="{{item.id}}" bindtap="openStudent">查看学员详情</view>
   </view>
 </view>
-

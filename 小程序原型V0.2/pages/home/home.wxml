@@ -3,10 +3,15 @@
     <view class="hero-title">AI 训练分析</view>
     <view class="hero-subtitle">上传本次骑乘视频，生成问题点、风险点、进步和下次训练重点。</view>
   </view>
+  <view class="btn btn-ghost" style="margin-top: 18rpx;" bindtap="goRoleSelect">切换学员 / 教练入口</view>
 
   <view class="card">
     <view class="row">
-      <view>
+      <view class="profile-left">
+        <image class="home-avatar" wx:if="{{profile.avatarUrl}}" src="{{profile.avatarUrl}}" mode="aspectFill"></image>
+        <view class="home-avatar avatar-empty" wx:else>{{profile.name ? profile.name.slice(0, 1) : '学'}}</view>
+      </view>
+      <view style="flex: 1;">
         <view class="card-title">{{profile.name || '学员资料'}}</view>
         <view class="muted">资料完整度 {{completion}}%</view>
       </view>
@@ -22,12 +27,26 @@
     <view class="btn btn-secondary" style="margin-top: 24rpx;" bindtap="goProfile">编辑学员资料</view>
   </view>
 
+  <view class="section-title" wx:if="{{latestOutline}}">我的阶段训练计划</view>
+  <view class="card" wx:if="{{latestOutline}}">
+    <view class="row">
+      <view>
+        <view class="card-title">{{latestOutline.title}}</view>
+        <view class="muted">{{latestOutline.stageGoal}}</view>
+      </view>
+      <view class="tag">教练已生成</view>
+    </view>
+    <view class="divider"></view>
+    <view class="small">{{latestOutline.nextUploadRequirement}}</view>
+    <view class="btn btn-secondary" style="margin-top: 24rpx;" bindtap="goStudentPlan">查看课程安排</view>
+  </view>
+
   <view class="section-title">训练视频</view>
   <view class="card">
     <view class="row">
       <view>
         <view class="card-title">上传本次训练</view>
-        <view class="muted">建议 15 秒到 3 分钟，画面包含骑手上身、腿部和行进方向。</view>
+        <view class="muted">建议 10 秒到 60 秒，画面包含骑手上身、腿部和行进方向。</view>
       </view>
     </view>
     <view class="btn btn-primary" style="margin-top: 26rpx;" bindtap="goUpload">上传训练视频</view>
