@@ -1180,3 +1180,40 @@
   font-size: 28rpx;
   font-weight: 900;
 }
+
+.coach-review-text {
+  margin-top: 18rpx;
+  padding: 22rpx;
+  border: 1rpx solid #dfe7f3;
+  border-radius: 14rpx;
+  color: #1f2937;
+  background: #f7faff;
+  font-size: 26rpx;
+  line-height: 1.6;
+}
+
+.coach-focus-list {
+  margin-top: 12rpx;
+}
+
+.coach-focus-item {
+  margin-top: 12rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 14rpx;
+  color: #344054;
+  background: #f3f6fb;
+  font-size: 25rpx;
+  line-height: 1.45;
+}
+
+.outline-week-card {
+  margin-top: 18rpx;
+  padding: 20rpx;
+  border: 1rpx solid #e6ebf2;
+  border-radius: 14rpx;
+  background: #ffffff;
+}
+
+.caution {
+  color: #b54708;
+}

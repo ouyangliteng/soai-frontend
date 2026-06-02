@@ -2,9 +2,13 @@ const dataService = require("../../utils/data-service");
 
 Page({
   data: {
+    role: "student",
     report: null,
     coachComment: "",
     coachFocusText: "",
+    displayCoachFocusItems: [],
+    teachingOutline: null,
+    outlinePreviewWeeks: [],
     studentExplanation: null,
     productSuggestions: null,
     poseAnalytics: null,
@@ -16,9 +20,15 @@ Page({
 
   async onLoad(options) {
     try {
+      const session = dataService.getCurrentSession();
       const report = await dataService.getReport(options.id);
+      const teachingOutline = await loadReportTeachingOutline(report);
       this.setData({
+        role: session.role === "coach" ? "coach" : "student",
         report,
+        teachingOutline,
+        outlinePreviewWeeks: buildOutlinePreviewWeeks(teachingOutline),
+        displayCoachFocusItems: buildDisplayCoachFocusItems(report),
         poseAnalytics: buildPoseAnalytics(report),
         coachComment: report && report.coachReview ? report.coachReview : "",
         coachFocusText: report && report.coachFocusItems ? report.coachFocusItems.join("、") : ""
@@ -75,6 +85,7 @@ Page({
 
   async saveReview() {
     const { report, coachComment, coachFocusText } = this.data;
+    if (this.data.role !== "coach") return;
     if (!coachComment) {
       wx.showToast({ title: "请输入复核意见", icon: "none" });
       return;
@@ -86,6 +97,7 @@ Page({
       .filter(Boolean);
     try {
       const nextReport = await dataService.saveCoachReview(report.id, coachComment, focusItems);
+      const teachingOutline = await loadReportTeachingOutline(nextReport);
       dataService.trackEvent("coach_review_submit", {
         page: "report",
         reportId: report.id,
@@ -93,7 +105,13 @@ Page({
           focusCount: focusItems.length
         }
       });
-      this.setData({ report: nextReport, poseAnalytics: buildPoseAnalytics(nextReport) });
+      this.setData({
+        report: nextReport,
+        teachingOutline,
+        outlinePreviewWeeks: buildOutlinePreviewWeeks(teachingOutline),
+        displayCoachFocusItems: buildDisplayCoachFocusItems(nextReport),
+        poseAnalytics: buildPoseAnalytics(nextReport)
+      });
       wx.showToast({ title: "已提交", icon: "success" });
     } catch (error) {
       wx.showToast({ title: error.message || "提交失败", icon: "none" });
@@ -102,6 +120,7 @@ Page({
 
   async generateCoachDraft() {
     const { report } = this.data;
+    if (this.data.role !== "coach") return;
     if (!report) return;
 
     this.setData({ draftLoading: true });
@@ -140,8 +159,36 @@ Page({
   goTeachingOutline() {
     if (!this.data.report) return;
     wx.navigateTo({ url: `/pages/teaching-outline/teaching-outline?reportId=${this.data.report.id}` });
+  },
+
+  goStudentPlan() {
+    const { teachingOutline } = this.data;
+    if (!teachingOutline) return;
+    wx.navigateTo({ url: `/pages/student-plan/student-plan?id=${teachingOutline.id}` });
   }
 });
+
+async function loadReportTeachingOutline(report) {
+  if (!report || !report.studentSnapshot) return null;
+  const outlines = await dataService.getTeachingOutlines(report.studentSnapshot.id);
+  return outlines.find((outline) => outline.reportId === report.id) || outlines[outlines.length - 1] || null;
+}
+
+function buildDisplayCoachFocusItems(report) {
+  if (!report) return [];
+  if (report.coachFocusItems && report.coachFocusItems.length) return report.coachFocusItems;
+  return report.nextTrainingFocus || [];
+}
+
+function buildOutlinePreviewWeeks(outline) {
+  if (!outline || !outline.weeklyPlan) return [];
+  return outline.weeklyPlan.map((week) => ({
+    week: week.week,
+    theme: week.theme,
+    studentTaskText: week.studentTasks && week.studentTasks.length ? week.studentTasks[0] : "",
+    coachTaskText: week.coachTasks && week.coachTasks.length ? week.coachTasks[0] : ""
+  }));
+}
 
 function buildPoseAnalytics(report) {
   if (!report || !report.scores) return null;

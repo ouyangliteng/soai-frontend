@@ -179,8 +179,44 @@
     <view class="small caution">边界：{{item.caution}}</view>
   </view>
 
-  <view class="section-title">教练复核</view>
-  <view class="card">
+  <view class="section-title">{{role === 'coach' ? '教练复核' : '教练报告'}}</view>
+  <view class="card" wx:if="{{role === 'student'}}">
+    <view class="row">
+      <view class="card-title">{{report.coachReviewStatus === 'reviewed' ? '教练已批复' : '等待教练批复'}}</view>
+      <view class="tag">{{report.studentSnapshot.coachName}}</view>
+    </view>
+    <view class="coach-review-text" wx:if="{{report.coachReview}}">{{report.coachReview}}</view>
+    <view class="muted" style="margin-top: 18rpx;" wx:else>教练批复完成后，这里会同步显示教练确认后的训练意见。</view>
+    <view class="divider"></view>
+    <view class="field-label">教练确认的下次训练重点</view>
+    <view class="coach-focus-list">
+      <view class="coach-focus-item" wx:for="{{displayCoachFocusItems}}" wx:key="*this">{{index + 1}}. {{item}}</view>
+    </view>
+
+    <view wx:if="{{teachingOutline}}">
+      <view class="divider"></view>
+      <view class="row">
+        <view>
+          <view class="card-title">{{teachingOutline.title}}</view>
+          <view class="muted" style="margin-top: 12rpx;">{{teachingOutline.stageGoal}}</view>
+        </view>
+        <view class="tag">已同步</view>
+      </view>
+      <view class="outline-week-card" wx:for="{{outlinePreviewWeeks}}" wx:key="week">
+        <view class="small">第 {{item.week}} 周 · {{item.theme}}</view>
+        <view class="muted" style="margin-top: 10rpx;">{{item.studentTaskText}}</view>
+      </view>
+      <view class="small caution" style="margin-top: 18rpx;">{{teachingOutline.safetyBoundary}}</view>
+      <view class="btn btn-secondary" style="margin-top: 22rpx;" bindtap="goStudentPlan">查看完整课程安排</view>
+    </view>
+    <view wx:else>
+      <view class="divider"></view>
+      <view class="card-title">阶段教学大纲待同步</view>
+      <view class="muted" style="margin-top: 14rpx;">教练生成阶段教学大纲后，学员端会在这里直接查看课程安排和训练文本。</view>
+    </view>
+  </view>
+
+  <view class="card" wx:else>
     <view class="row">
       <view class="card-title">{{report.coachReviewStatus === 'reviewed' ? '已复核' : '待复核'}}</view>
       <view class="tag">{{report.studentSnapshot.coachName}}</view>
