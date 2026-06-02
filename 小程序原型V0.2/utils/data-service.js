@@ -285,11 +285,17 @@ async function getCoachReviewDraft(reportId) {
 async function getStudentExplanation(reportId) {
   if (isApiMode()) return api.getStudentExplanation(reportId);
   const report = store.getReport(reportId);
+  const problem = report.problemPoints && report.problemPoints[0] ? report.problemPoints[0] : null;
+  const risk = report.riskPoints && report.riskPoints[0] ? report.riskPoints[0] : null;
+  const focusItems = report.nextTrainingFocus ? report.nextTrainingFocus.slice(0, 2) : [];
   return {
     reportId,
-    title: "本次训练报告解读",
-    explanation: `这次报告的重点不是分数本身，而是${report.problemPoints[0].title}。下次训练可以先关注：${report.nextTrainingFocus.slice(0, 2).join("、")}。风险提示需要结合教练现场判断。`,
-    nextAction: "下次训练后继续上传同类视频，系统会生成趋势变化。"
+    title: "本次训练安全复盘",
+    explanation: `本次 AI 只依据上传视频中的可见姿态和时间段做辅助复盘。${problem && problem.evidence ? problem.evidence : "本次视频只截取了部分训练片段"}，系统将“${problem ? problem.title : "动作稳定性"}”列为优先观察项；${risk ? `“${risk.title}”需要教练结合现场骑乘状态复核。` : "本次未形成独立风险结论。"}。`,
+    safetyStandard: "安全标准以教练现场判断为准：AI 不评价马匹状态、场地干扰、学员身体不适和突发风险；凡涉及速度变化、失衡、紧张、路线偏移或扶助失控，应先暂停训练，由教练确认后再继续。",
+    nextAction: focusItems.length
+      ? `下次训练只选择 1 到 2 个重点执行：${focusItems.join("、")}。训练后上传同角度片段，用趋势页对比是否稳定。`
+      : "下次训练后上传同角度片段，用趋势页对比动作是否更稳定。"
   };
 }
 

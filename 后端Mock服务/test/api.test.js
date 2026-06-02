@@ -99,6 +99,7 @@ async function main() {
 
     const studentExplanation = await request(baseUrl, "GET", `/api/ai/reports/${task.reportId}/student-explanation`);
     assert.ok(studentExplanation.explanation.includes("教练"));
+    assert.ok(studentExplanation.safetyStandard.includes("教练现场判断"));
 
     const operationContent = await request(baseUrl, "GET", `/api/ai/reports/${task.reportId}/operation-content`);
     assert.ok(operationContent.xiaohongshu.title);

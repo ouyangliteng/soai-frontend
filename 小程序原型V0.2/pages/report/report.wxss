@@ -946,36 +946,6 @@
   font-size: 27rpx;
 }
 
-.product-card .tag {
-  max-width: 180rpx;
-  justify-content: center;
-}
-
-.knowledge-list {
-  display: grid;
-  gap: 12rpx;
-  margin-top: 18rpx;
-}
-
-.knowledge-list view {
-  position: relative;
-  padding-left: 22rpx;
-  color: #344054;
-  font-size: 25rpx;
-  line-height: 1.55;
-}
-
-.knowledge-list view::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 16rpx;
-  width: 8rpx;
-  height: 8rpx;
-  border-radius: 999rpx;
-  background: #0f67ff;
-}
-
 .caution {
   margin-top: 18rpx;
   padding: 16rpx;

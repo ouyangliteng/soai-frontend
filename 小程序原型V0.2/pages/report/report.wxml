@@ -134,6 +134,9 @@
     <view class="card-title">{{studentExplanation.title}}</view>
     <view class="muted" style="margin-top: 16rpx;">{{studentExplanation.explanation}}</view>
     <view class="divider"></view>
+    <view class="field-label">安全标准</view>
+    <view class="muted" style="margin-top: 12rpx;">{{studentExplanation.safetyStandard}}</view>
+    <view class="divider"></view>
     <view class="muted">{{studentExplanation.nextAction}}</view>
   </view>
 
@@ -166,28 +169,6 @@
   <view class="section-title">下次训练重点</view>
   <view class="card">
     <view class="list-item" wx:for="{{report.nextTrainingFocus}}" wx:key="*this">{{index + 1}}. {{item}}</view>
-  </view>
-
-  <view class="section-title" wx:if="{{productSuggestions}}">训练装备知识</view>
-  <view class="card" wx:if="{{productSuggestions}}">
-    <view class="card-title">{{productSuggestions.title}}</view>
-    <view class="muted" style="margin-top: 14rpx;">{{productSuggestions.summary}}</view>
-  </view>
-  <view class="card product-card" wx:for="{{productSuggestions.items}}" wx:key="id">
-    <view class="row">
-      <view>
-        <view class="card-title">{{item.productName}}</view>
-        <view class="muted">{{item.category}}</view>
-      </view>
-      <view class="tag">{{item.ctaLabel}}</view>
-    </view>
-    <view class="muted" style="margin-top: 16rpx;">{{item.scenario}}</view>
-    <view class="divider"></view>
-    <view class="small">关联原因：{{item.whyRelevant}}</view>
-    <view class="knowledge-list">
-      <view wx:for="{{item.knowledgePoints}}" wx:for-item="point" wx:key="*this">{{point}}</view>
-    </view>
-    <view class="small caution">边界：{{item.caution}}</view>
   </view>
 
   <view class="section-title">{{role === 'coach' ? '教练复核' : '教练报告'}}</view>

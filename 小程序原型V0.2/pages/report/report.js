@@ -18,7 +18,6 @@ Page({
     teachingOutline: null,
     outlinePreviewWeeks: [],
     studentExplanation: null,
-    productSuggestions: null,
     poseAnalytics: null,
     draftLoading: false,
     readCompleteTracked: false
@@ -47,7 +46,6 @@ Page({
         reportId: report.id
       });
       this.loadStudentExplanation(report.id);
-      this.loadProductSuggestions(report.id);
       this.readTimer = setTimeout(() => this.trackReadComplete("timer"), 30000);
     } catch (error) {
       wx.showToast({ title: error.message || "报告加载失败", icon: "none" });
@@ -68,15 +66,6 @@ Page({
       this.setData({ studentExplanation });
     } catch (error) {
       this.setData({ studentExplanation: null });
-    }
-  },
-
-  async loadProductSuggestions(reportId) {
-    try {
-      const productSuggestions = await dataService.getProductSuggestions(reportId);
-      this.setData({ productSuggestions });
-    } catch (error) {
-      this.setData({ productSuggestions: null });
     }
   },
 
