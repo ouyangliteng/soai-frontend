@@ -100,3 +100,19 @@
   color: #344054;
   font-size: 26rpx;
 }
+
+.record-card {
+  border-left: 8rpx solid #0f67ff;
+}
+
+.coach-review {
+  margin-top: 14rpx;
+  color: #111827;
+  font-size: 27rpx;
+  line-height: 1.7;
+}
+
+.video-note {
+  margin-top: 14rpx;
+  color: #0f67ff;
+}

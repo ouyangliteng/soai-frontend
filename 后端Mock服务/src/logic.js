@@ -1,15 +1,68 @@
+const fs = require("fs");
 const { db, createReportFromAnalysis, saveDb } = require("./data");
 const { runAnalysisPipeline } = require("./analysis-pipeline");
 
+function cleanupExpiredVideos(referenceDate = new Date()) {
+  let changed = false;
+  db.reports.forEach((report) => {
+    if (!report.videoAvailableUntil) return;
+    if (new Date(report.videoAvailableUntil).getTime() > referenceDate.getTime()) {
+      report.videoVisibleToday = true;
+      return;
+    }
+    if (report.videoVisibleToday || report.videoPath || report.videoStorageUrl) {
+      report.videoVisibleToday = false;
+      report.videoPath = "";
+      report.videoStorageUrl = "";
+      changed = true;
+    }
+  });
+
+  db.videos.forEach((video) => {
+    const relatedReport = db.reports.find((report) => report.videoId === video.id);
+    if (!relatedReport || !relatedReport.videoAvailableUntil) return;
+    if (new Date(relatedReport.videoAvailableUntil).getTime() > referenceDate.getTime()) return;
+    if (video.storagePath && fs.existsSync(video.storagePath)) {
+      fs.unlinkSync(video.storagePath);
+      changed = true;
+    }
+    if (video.storageUrl || video.storagePath) {
+      video.storageUrl = "";
+      video.storagePath = "";
+      video.uploadStatus = "expired";
+      changed = true;
+    }
+  });
+
+  if (changed) saveDb();
+}
+
 function getTrend(studentId, limit = 5) {
+  cleanupExpiredVideos();
   const reports = db.reports
     .filter((report) => report.studentId === studentId)
     .slice(-Number(limit));
 
   const items = reports.map((report) => ({
+    id: report.id,
     reportId: report.id,
     trainingDate: report.summary.trainingDate,
+    reportTime: report.reportTime || report.createdAt,
+    createdAt: report.createdAt,
     overallScore: report.summary.overallScore,
+    summary: report.summary,
+    scores: report.scores,
+    problemPoints: report.problemPoints,
+    riskPoints: report.riskPoints,
+    improvements: report.improvements,
+    nextTrainingFocus: report.nextTrainingFocus,
+    coachReviewStatus: report.coachReviewStatus,
+    coachReview: report.coachReview,
+    coachFocusItems: report.coachFocusItems || [],
+    studentSnapshot: report.studentSnapshot,
+    videoVisibleToday: Boolean(report.videoVisibleToday && report.videoPath),
+    videoAvailableUntil: report.videoAvailableUntil || "",
+    videoPath: report.videoVisibleToday ? report.videoPath : "",
     postureControl: report.scores.postureControl,
     rhythmControl: report.scores.rhythmControl,
     stability: report.scores.stability,
@@ -36,6 +89,7 @@ function getTrend(studentId, limit = 5) {
 }
 
 async function completeTask(task) {
+  cleanupExpiredVideos();
   if (task.status === "completed") return task;
   const video = db.videos.find((item) => item.id === task.videoId);
   if (!video) {
@@ -231,6 +285,7 @@ function isToday(value) {
 }
 
 module.exports = {
+  cleanupExpiredVideos,
   getTrend,
   completeTask,
   getTaskView,

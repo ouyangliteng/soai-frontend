@@ -193,6 +193,10 @@ Page({
     const { teachingOutline } = this.data;
     if (!teachingOutline) return;
     wx.navigateTo({ url: `/pages/student-plan/student-plan?id=${teachingOutline.id}` });
+  },
+
+  goTrends() {
+    wx.switchTab({ url: "/pages/trends/trends" });
   }
 });
 

@@ -69,6 +69,9 @@ async function main() {
     assert.ok(reportRes.report.poseSummary.usableFrameRate >= 0.7);
     assert.ok(reportRes.report.ruleResults.length >= 5);
     assert.ok(reportRes.report.problemPoints[0].evidence.includes("视频中"));
+    assert.ok(reportRes.report.reportTime);
+    assert.strictEqual(reportRes.report.videoVisibleToday, true);
+    assert.ok(reportRes.report.videoAvailableUntil);
 
     const aiDraft = await request(baseUrl, "POST", "/api/ai/report-draft", {});
     assert.strictEqual(aiDraft.validation.valid, true);
@@ -154,6 +157,7 @@ async function main() {
     const trend = await request(baseUrl, "GET", `/api/students/${profileRes.profile.id}/trends?limit=5`);
     assert.ok(trend.items.length >= 2);
     assert.ok(trend.trendSummary.includes("最近"));
+    assert.ok(trend.items.some((item) => item.reportId === task.reportId && item.reportTime));
 
     const dashboardBefore = await request(baseUrl, "GET", "/api/coach/dashboard");
     assert.ok(dashboardBefore.stats.pendingReviewCount >= 1);
@@ -179,6 +183,10 @@ async function main() {
 
     const annotations = await request(baseUrl, "GET", `/api/coach/review-annotations?reportId=${task.reportId}`);
     assert.ok(annotations.items.some((item) => item.label === "partially_accurate"));
+
+    const reviewedTrend = await request(baseUrl, "GET", `/api/students/${profileRes.profile.id}/trends?limit=5`);
+    assert.ok(reviewedTrend.items.some((item) => item.reportId === task.reportId && item.coachReviewStatus === "reviewed"));
+    assert.ok(reviewedTrend.items.some((item) => item.reportId === task.reportId && item.coachReview));
 
     const studentDetail = await request(baseUrl, "GET", `/api/coach/students/${profileRes.profile.id}`);
     assert.ok(studentDetail.assignments.length >= 1);

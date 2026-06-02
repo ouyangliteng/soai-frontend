@@ -8,7 +8,8 @@ const {
   getCoachDashboard,
   getCoachStudent,
   formatCoachReport,
-  saveCoachReview
+  saveCoachReview,
+  cleanupExpiredVideos
 } = require("./logic");
 const {
   buildReportInput,
@@ -21,7 +22,7 @@ const {
 } = require("./ai-agents");
 const { getOperationsDashboard, getOperationsDailyReport } = require("./operations");
 const { getProductSuggestions } = require("./product-suggestions");
-const { createUploadTarget, saveUploadedVideo } = require("./storage");
+const { createUploadTarget, saveUploadedVideo, getStorageFilePath } = require("./storage");
 const {
   trackEvent,
   listEvents,
@@ -36,6 +37,7 @@ function createServer() {
     const url = new URL(req.url, `http://${req.headers.host}`);
 
     try {
+      cleanupExpiredVideos();
       if (req.method === "OPTIONS") return send(res, 204, {});
       if (req.method === "GET" && url.pathname === "/health") {
         return send(res, 200, {
@@ -57,6 +59,11 @@ function createServer() {
         await saveUploadedVideo(video, req);
         saveDb();
         return send(res, 200, { success: true, videoId: video.id, storageUrl: video.storageUrl });
+      }
+
+      const storageMatch = url.pathname.match(/^\/storage\/(.+)$/);
+      if (req.method === "GET" && storageMatch) {
+        return sendStorageFile(res, storageMatch[1]);
       }
 
       if (req.method === "GET" && url.pathname === "/api/student/profile") {
@@ -403,6 +410,20 @@ function send(res, status, payload) {
   });
   if (status === 204) return res.end();
   res.end(JSON.stringify(payload));
+}
+
+function sendStorageFile(res, storageKey) {
+  const filePath = getStorageFilePath(storageKey);
+  if (!filePath || !require("fs").existsSync(filePath)) {
+    return sendError(res, 404, "FILE_NOT_FOUND", "视频文件已过期或不存在。");
+  }
+  const ext = filePath.split(".").pop().toLowerCase();
+  const contentType = ext === "mov" ? "video/quicktime" : ext === "jpg" || ext === "jpeg" ? "image/jpeg" : "video/mp4";
+  res.writeHead(200, {
+    "Content-Type": contentType,
+    "Cache-Control": "private, max-age=3600"
+  });
+  require("fs").createReadStream(filePath).pipe(res);
 }
 
 if (require.main === module) {

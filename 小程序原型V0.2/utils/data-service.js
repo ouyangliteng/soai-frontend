@@ -363,15 +363,20 @@ async function submitFeedback(payload = {}) {
 
 function normalizeReport(report) {
   if (!report) return null;
+  const reportTime = report.reportTime || report.createdAt || (report.summary ? report.summary.trainingDate : "");
   return {
     ...report,
-    trainingDate: report.trainingDate || (report.summary ? report.summary.trainingDate : "")
+    trainingDate: report.trainingDate || (report.summary ? report.summary.trainingDate : ""),
+    reportTime,
+    reportTimeText: formatDateTime(reportTime),
+    videoVisibleToday: Boolean(report.videoVisibleToday && (report.videoPath || report.videoStorageUrl)),
+    videoUrl: report.videoPath || report.videoStorageUrl || ""
   };
 }
 
 function normalizeTrend(trend) {
   const items = (trend.items || []).map((item) => {
-    if (item.summary) return item;
+    if (item.summary) return normalizeReport(item);
     return {
       id: item.reportId,
       trainingDate: item.trainingDate,
@@ -383,13 +388,34 @@ function normalizeTrend(trend) {
         rhythmControl: item.rhythmControl,
         stability: item.stability
       },
-      riskPoints: new Array(item.riskCount || 0).fill({ riskLevel: "medium" })
+      riskPoints: new Array(item.riskCount || 0).fill({ riskLevel: "medium" }),
+      coachReviewStatus: item.coachReviewStatus || "pending",
+      coachReview: item.coachReview || "",
+      coachFocusItems: item.coachFocusItems || [],
+      reportTime: item.reportTime || item.createdAt || item.trainingDate,
+      reportTimeText: formatDateTime(item.reportTime || item.createdAt || item.trainingDate)
     };
   });
   return {
     items,
     summary: trend.summary || trend.trendSummary || ""
   };
+}
+
+function formatDateTime(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hour = pad(date.getHours());
+  const minute = pad(date.getMinutes());
+  return `${year}-${month}-${day} ${hour}:${minute}`;
+}
+
+function pad(value) {
+  return String(value).padStart(2, "0");
 }
 
 function normalizeCoachStudent(detail) {

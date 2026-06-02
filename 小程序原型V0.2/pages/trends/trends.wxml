@@ -1,111 +1,73 @@
 <view class="page">
-  <view wx:if="{{role === 'coach'}}">
-    <view class="hero">
-      <view class="hero-title">赛事管理</view>
-      <view class="hero-subtitle">先把教练端趋势入口改为赛事入口，后续可接入正式赛事选择、报名状态和参赛任务。</view>
-    </view>
+  <view class="hero">
+    <view class="hero-title">训练趋势</view>
+    <view class="hero-subtitle">查看最近 {{limit}} 次上传视频形成的分析报告、评分变化和教练批复。</view>
+  </view>
 
-    <view class="stats-grid">
-      <view class="stat-card">
-        <view class="stat-value">{{eventStats.studentCount || 0}}</view>
-        <view class="stat-label">名下学员</view>
-      </view>
-      <view class="stat-card">
-        <view class="stat-value">{{eventStats.readyCount || 0}}</view>
-        <view class="stat-label">可准备参赛</view>
-      </view>
-      <view class="stat-card">
-        <view class="stat-value">{{eventStats.pendingReviewCount || 0}}</view>
-        <view class="stat-label">待复核报告</view>
-      </view>
-      <view class="stat-card">
-        <view class="stat-value">{{eventStats.eventCount || 0}}</view>
-        <view class="stat-label">赛事入口</view>
-      </view>
+  <view class="stats-grid">
+    <view class="stat-card">
+      <view class="stat-value">{{stats.recordCount}}</view>
+      <view class="stat-label">训练记录</view>
     </view>
-
-    <view class="card">
-      <view class="row">
-        <view>
-          <view class="card-title">赛事选择</view>
-          <view class="muted">当前为内测占位结构，可按赛事类型筛选。</view>
-        </view>
-        <view class="tag">{{eventTypeLabel}}</view>
-      </view>
-      <picker mode="selector" range="{{eventTypes}}" range-key="label" value="{{eventTypeIndex}}" bindchange="changeEventType">
-        <view class="btn btn-secondary" style="margin-top: 24rpx;">选择赛事类型</view>
-      </picker>
+    <view class="stat-card">
+      <view class="stat-value">{{stats.latestScore}}</view>
+      <view class="stat-label">最近评分</view>
     </view>
-
-    <view class="section-title">赛事安排</view>
-    <view class="card event-card" wx:for="{{events}}" wx:key="id">
-      <view class="row">
-        <view>
-          <view class="card-title">{{item.title}}</view>
-          <view class="muted">{{item.date}} · {{item.focus}}</view>
-        </view>
-        <view class="tag">{{item.status}}</view>
-      </view>
-      <view class="event-progress">
-        <view class="event-progress-bar" style="width: {{item.studentCount * 18}}%;"></view>
-      </view>
-      <view class="event-meta-row">
-        <view class="mini-tag">关联学员 {{item.studentCount}}</view>
-        <view class="mini-tag">{{item.readyText}}</view>
-      </view>
-      <view class="muted" style="margin-top: 18rpx;">{{item.actionText}}</view>
+    <view class="stat-card">
+      <view class="stat-value">{{stats.reviewedCount}}</view>
+      <view class="stat-label">教练已批复</view>
     </view>
-
-    <view class="card" wx:if="{{events.length === 0}}">
-      <view class="card-title">暂无该类型赛事</view>
-      <view class="muted">切换赛事类型后可查看其他安排。</view>
+    <view class="stat-card">
+      <view class="stat-value">{{stats.pendingCount}}</view>
+      <view class="stat-label">待批复</view>
     </view>
   </view>
 
-  <view wx:else>
-    <view class="hero">
-      <view class="hero-title">历史趋势</view>
-      <view class="hero-subtitle">跟踪最近 5 次和 10 次训练变化，帮助教练判断学员是否持续进步。</view>
+  <view class="card">
+    <view class="row">
+      <view class="card-title">趋势范围</view>
+      <view class="tag">最近 {{limit}} 次</view>
     </view>
+    <view class="row" style="margin-top: 24rpx;">
+      <view class="btn {{limit === 5 ? 'btn-primary' : 'btn-ghost'}}" style="flex: 1;" data-limit="5" bindtap="changeLimit">5 次</view>
+      <view class="btn {{limit === 10 ? 'btn-primary' : 'btn-ghost'}}" style="flex: 1;" data-limit="10" bindtap="changeLimit">10 次</view>
+    </view>
+  </view>
 
-    <view class="card">
-      <view class="row">
-        <view class="card-title">趋势范围</view>
-        <view class="tag">最近 {{limit}} 次</view>
-      </view>
-      <view class="row" style="margin-top: 24rpx;">
-        <view class="btn {{limit === 5 ? 'btn-primary' : 'btn-ghost'}}" style="flex: 1;" data-limit="5" bindtap="changeLimit">5 次</view>
-        <view class="btn {{limit === 10 ? 'btn-primary' : 'btn-ghost'}}" style="flex: 1;" data-limit="10" bindtap="changeLimit">10 次</view>
+  <view class="card">
+    <view class="card-title">总评分变化</view>
+    <view class="trend-chart">
+      <view class="trend-column" wx:for="{{trend.items}}" wx:key="id">
+        <view class="trend-bar" style="height: {{item.score * 1.6}}rpx;"></view>
+        <view class="trend-score">{{item.score}}</view>
+        <view class="trend-date">{{item.trainingDate}}</view>
       </view>
     </view>
+    <view class="muted" style="margin-top: 22rpx;">{{trend.summary}}</view>
+  </view>
 
-    <view class="card">
-      <view class="card-title">总评分变化</view>
-      <view class="trend-chart">
-        <view class="trend-column" wx:for="{{trend.items}}" wx:key="id">
-          <view class="trend-bar" style="height: {{item.summary.overallScore * 1.6}}rpx;"></view>
-          <view class="trend-score">{{item.summary.overallScore}}</view>
-          <view class="trend-date">{{item.displayDate}}</view>
-        </view>
+  <view class="section-title">训练报告记录</view>
+  <view class="card record-card" wx:for="{{trend.items}}" wx:key="id" bindtap="goReport" data-id="{{item.id || item.reportId}}">
+    <view class="row">
+      <view>
+        <view class="card-title">{{item.displayDate}}</view>
+        <view class="muted">{{item.conclusion}}</view>
       </view>
-      <view class="muted" style="margin-top: 22rpx;">{{trend.summary}}</view>
+      <view class="tag">{{item.score}} 分</view>
     </view>
+    <view class="metric">姿态控制 {{item.scores.postureControl}} · 节奏控制 {{item.scores.rhythmControl}} · 稳定 {{item.scores.stability}}</view>
+    <view class="divider"></view>
+    <view class="row">
+      <view class="field-label">教练回复</view>
+      <view class="tag {{item.coachReviewStatus === 'reviewed' ? '' : 'tag-warning'}}">{{item.coachStatusText}}</view>
+    </view>
+    <view class="coach-review">{{item.coachReviewText}}</view>
+    <view class="small" style="margin-top: 12rpx;">训练重点：{{item.focusText}}</view>
+    <view class="small video-note" wx:if="{{item.videoVisibleToday}}">当天上传视频仍可在报告详情查看，次日自动删除。</view>
+  </view>
 
-    <view class="section-title">维度变化</view>
-    <view class="card" wx:for="{{trend.items}}" wx:key="id">
-      <view class="row">
-        <view class="card-title">{{item.trainingDate}}</view>
-        <view class="tag">{{item.summary.overallScore}} 分</view>
-      </view>
-      <view class="metric">姿态控制 {{item.scores.postureControl}}</view>
-      <view class="metric">节奏控制 {{item.scores.rhythmControl}}</view>
-      <view class="metric">骑坐稳定 {{item.scores.stability}}</view>
-      <view class="metric">风险点 {{item.riskPoints.length}} 个</view>
-    </view>
-
-    <view class="card" wx:if="{{trend.items.length < 2}}">
-      <view class="card-title">趋势数据不足</view>
-      <view class="muted">完成 2 次以上训练后，系统会生成趋势结论。</view>
-    </view>
+  <view class="card" wx:if="{{trend.items.length < 5}}">
+    <view class="card-title">继续上传形成趋势</view>
+    <view class="muted">当前少于 5 次训练记录。完成更多上传后，这里会形成更稳定的阶段趋势和教练批复档案。</view>
   </view>
 </view>

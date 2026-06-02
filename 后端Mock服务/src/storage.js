@@ -78,10 +78,20 @@ function toStorageUrl(storageKey) {
   return `${baseUrl}/${storageKey}`;
 }
 
+function getStorageFilePath(storageKey = "") {
+  const normalized = storageKey.replace(/^\/+/, "");
+  const filePath = path.join(STORAGE_ROOT, normalized);
+  const rootPath = path.resolve(STORAGE_ROOT);
+  const resolved = path.resolve(filePath);
+  if (!resolved.startsWith(rootPath)) return "";
+  return resolved;
+}
+
 module.exports = {
   STORAGE_ROOT,
   createUploadTarget,
   saveUploadedVideo,
   buildFramePath,
-  toStorageUrl
+  toStorageUrl,
+  getStorageFilePath
 };

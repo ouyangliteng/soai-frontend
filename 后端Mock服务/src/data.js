@@ -94,6 +94,7 @@ function saveDb() {
 }
 
 function createReport(id, videoId, taskId, trainingDate, overallScore, postureControl, rhythmControl, stability, riskCount, coachReviewStatus = "pending") {
+  const createdAt = now();
   return {
     id,
     studentId: db.profile.id,
@@ -143,14 +144,19 @@ function createReport(id, videoId, taskId, trainingDate, overallScore, postureCo
     coachReviewStatus,
     coachReview: coachReviewStatus === "reviewed" ? "AI 判断基本准确，下次继续关注轻快步节奏。" : "",
     coachFocusItems: [],
-    createdAt: now()
+    reportTime: createdAt,
+    videoAvailableUntil: "",
+    videoVisibleToday: false,
+    createdAt
   };
 }
 
 function createReportFromTask(task) {
   const video = db.videos.find((item) => item.id === task.videoId);
-  const today = new Date();
+  const reportCreatedAt = new Date();
+  const today = reportCreatedAt;
   const trainingDate = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  const videoAvailableUntil = getNextDayIso(reportCreatedAt);
   const input = buildReportInput({
     profile: db.profile,
     video,
@@ -178,15 +184,20 @@ function createReportFromTask(task) {
     nextTrainingFocus: aiReport.nextTrainingFocus,
     trendSummary: aiReport.trendSummary,
     limitations: aiReport.limitations,
-    videoPath: video ? video.fileUrl : "",
+    videoPath: video ? video.storageUrl || video.fileUrl : "",
+    videoStorageUrl: video ? video.storageUrl || video.fileUrl : "",
     videoDurationSec: video ? video.durationSec : 0,
     videoSizeMb: video ? video.sizeMb : 0,
+    videoUploadStatus: video ? video.uploadStatus : "",
+    videoAvailableUntil,
+    videoVisibleToday: true,
     videoExcerptStartSec: 0,
     videoExcerptEndSec: video ? Math.min(60, video.durationSec || 60) : 60,
     coachReviewStatus: "pending",
     coachReview: "",
     coachFocusItems: [],
-    createdAt: now()
+    reportTime: reportCreatedAt.toISOString(),
+    createdAt: reportCreatedAt.toISOString()
   };
   db.reports.push(report);
   saveDb();
@@ -194,8 +205,10 @@ function createReportFromTask(task) {
 }
 
 function createReportFromAnalysis({ task, video, aiReport, poseSummary, frames, poseFrames, ruleResults }) {
-  const today = new Date();
+  const reportCreatedAt = new Date();
+  const today = reportCreatedAt;
   const trainingDate = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  const videoAvailableUntil = getNextDayIso(reportCreatedAt);
   const report = {
     id: `report_${Date.now()}`,
     studentId: db.profile.id,
@@ -221,14 +234,19 @@ function createReportFromAnalysis({ task, video, aiReport, poseSummary, frames, 
       lastFrameAtMs: frames[frames.length - 1] ? frames[frames.length - 1].timestampMs : 0
     },
     videoPath: video ? video.storageUrl || video.fileUrl : "",
+    videoStorageUrl: video ? video.storageUrl || video.fileUrl : "",
     videoDurationSec: video ? video.durationSec : 0,
     videoSizeMb: video ? video.sizeMb : 0,
+    videoUploadStatus: video ? video.uploadStatus : "",
+    videoAvailableUntil,
+    videoVisibleToday: true,
     videoExcerptStartSec: 0,
     videoExcerptEndSec: video ? Math.min(60, video.durationSec || 60) : 60,
     coachReviewStatus: "pending",
     coachReview: "",
     coachFocusItems: [],
-    createdAt: now()
+    reportTime: reportCreatedAt.toISOString(),
+    createdAt: reportCreatedAt.toISOString()
   };
   db.poseDetections.push({
     id: `pose_${task.id}`,
@@ -254,6 +272,13 @@ function createReportFromAnalysis({ task, video, aiReport, poseSummary, frames, 
 
 function pad(value) {
   return String(value).padStart(2, "0");
+}
+
+function getNextDayIso(date) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + 1);
+  next.setHours(0, 0, 0, 0);
+  return next.toISOString();
 }
 
 seed();

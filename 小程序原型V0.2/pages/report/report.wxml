@@ -14,9 +14,20 @@
     </view>
     <view class="divider"></view>
     <view class="row">
+      <view class="small">报告时间：{{report.reportTimeText}}</view>
+      <view class="tag" bindtap="goTrends">回到趋势</view>
+    </view>
+    <view class="divider"></view>
+    <view class="row">
       <view class="small">教练：{{report.studentSnapshot.coachName}}</view>
       <view class="small">{{report.studentSnapshot.clubName}}</view>
     </view>
+  </view>
+
+  <view class="section-title" wx:if="{{report.videoVisibleToday}}">当天上传视频</view>
+  <view class="card video-card" wx:if="{{report.videoVisibleToday}}">
+    <video class="report-video" src="{{report.videoUrl}}" controls show-fullscreen-btn show-play-btn></video>
+    <view class="small video-expire">该视频资料仅保留当天，用于学员查看本次分析依据，次日会自动删除。</view>
   </view>
 
   <view class="section-title">测试结果</view>

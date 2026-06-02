@@ -1253,3 +1253,19 @@
   margin-top: 18rpx;
   min-height: 130rpx;
 }
+
+.video-card {
+  overflow: hidden;
+}
+
+.report-video {
+  width: 100%;
+  height: 360rpx;
+  border-radius: 14rpx;
+  background: #111827;
+}
+
+.video-expire {
+  margin-top: 16rpx;
+  color: #667085;
+}
