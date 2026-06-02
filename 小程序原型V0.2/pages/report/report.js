@@ -60,6 +60,17 @@ Page({
     this.trackReadComplete("scroll_bottom");
   },
 
+  onVideoTimeUpdate(event) {
+    const { report } = this.data;
+    if (!report || !report.videoVisibleToday) return;
+    const currentTime = Number(event.detail.currentTime || 0);
+    const endSec = Number(report.videoExcerptEndSec || 10);
+    if (currentTime < endSec) return;
+    const videoContext = wx.createVideoContext("reportVideo", this);
+    videoContext.pause();
+    videoContext.seek(Number(report.videoExcerptStartSec || 0));
+  },
+
   async loadStudentExplanation(reportId) {
     try {
       const studentExplanation = await dataService.getStudentExplanation(reportId);

@@ -370,13 +370,20 @@ async function submitFeedback(payload = {}) {
 function normalizeReport(report) {
   if (!report) return null;
   const reportTime = report.reportTime || report.createdAt || (report.summary ? report.summary.trainingDate : "");
+  const excerptStartSec = Number(report.videoExcerptStartSec || 0);
+  const excerptDurationSec = Number(report.videoExcerptDurationSec || 10);
+  const excerptEndSec = Number(report.videoExcerptEndSec || excerptStartSec + excerptDurationSec);
   return {
     ...report,
     trainingDate: report.trainingDate || (report.summary ? report.summary.trainingDate : ""),
     reportTime,
     reportTimeText: formatDateTime(reportTime),
     videoVisibleToday: Boolean(report.videoVisibleToday && (report.videoPath || report.videoStorageUrl)),
-    videoUrl: report.videoPath || report.videoStorageUrl || ""
+    videoUrl: report.videoPath || report.videoStorageUrl || "",
+    videoExcerptStartSec: excerptStartSec,
+    videoExcerptDurationSec: excerptDurationSec,
+    videoExcerptEndSec: excerptEndSec,
+    videoExcerptText: `${formatSecond(excerptStartSec)}-${formatSecond(excerptEndSec)} / ${excerptDurationSec} 秒节选`
   };
 }
 
@@ -422,6 +429,13 @@ function formatDateTime(value) {
 
 function pad(value) {
   return String(value).padStart(2, "0");
+}
+
+function formatSecond(value) {
+  const seconds = Math.max(0, Number(value) || 0);
+  const minute = Math.floor(seconds / 60);
+  const rest = Math.floor(seconds % 60);
+  return `${minute}:${String(rest).padStart(2, "0")}`;
 }
 
 function normalizeCoachStudent(detail) {

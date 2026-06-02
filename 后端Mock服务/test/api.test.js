@@ -72,6 +72,8 @@ async function main() {
     assert.ok(reportRes.report.reportTime);
     assert.strictEqual(reportRes.report.videoVisibleToday, true);
     assert.ok(reportRes.report.videoAvailableUntil);
+    assert.strictEqual(reportRes.report.videoExcerptDurationSec, 10);
+    assert.strictEqual(reportRes.report.videoExcerptEndSec, 10);
 
     const aiDraft = await request(baseUrl, "POST", "/api/ai/report-draft", {});
     assert.strictEqual(aiDraft.validation.valid, true);

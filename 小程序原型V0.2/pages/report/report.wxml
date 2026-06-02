@@ -24,10 +24,30 @@
     </view>
   </view>
 
-  <view class="section-title" wx:if="{{report.videoVisibleToday}}">当天上传视频</view>
-  <view class="card video-card" wx:if="{{report.videoVisibleToday}}">
-    <video class="report-video" src="{{report.videoUrl}}" controls show-fullscreen-btn show-play-btn></video>
-    <view class="small video-expire">该视频资料仅保留当天，用于学员查看本次分析依据，次日会自动删除。</view>
+  <view class="section-title">上传视频节选</view>
+  <view class="card video-card">
+    <view class="video-window" wx:if="{{report.videoVisibleToday}}">
+      <video
+        id="reportVideo"
+        class="report-video"
+        src="{{report.videoUrl}}"
+        initial-time="{{report.videoExcerptStartSec}}"
+        controls
+        show-fullscreen-btn
+        show-play-btn
+        bindtimeupdate="onVideoTimeUpdate"
+      ></video>
+    </view>
+    <view class="video-placeholder" wx:else>
+      <view class="placeholder-grid"></view>
+      <view class="placeholder-title">10 秒视频节选窗口</view>
+      <view class="placeholder-text">当天上传视频可在这里查看；视频次日自动删除后，窗口会保留为人体姿态识别打点与轨迹回放区域。</view>
+    </view>
+    <view class="video-meta-row">
+      <view class="mini-tag">{{report.videoExcerptText}}</view>
+      <view class="mini-tag">{{report.videoVisibleToday ? '当天视频可查看' : '视频已过期或待上传'}}</view>
+    </view>
+    <view class="small video-expire">该区域用于呈现未来人体姿态识别打点、骨架跟踪和关键时间点复盘；原始上传视频仅保留当天，次日自动删除。</view>
   </view>
 
   <view class="section-title">测试结果</view>
