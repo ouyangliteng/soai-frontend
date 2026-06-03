@@ -101,5 +101,5 @@ ALIYUN_RAM_ROLE_ARN=可选，后续做STS临时授权时使用
 
 - 后台鉴权是 Bearer Token，不是完整账号权限系统
 - 数据默认仍可用 JSON 文件持久化，正式上线应升级 MySQL/PostgreSQL
-- OSS 已做配置检测和字段预留，真实直传签名接口下一步实现
+- OSS 已有第一版 POST Policy 签名直传；生产建议继续补 STS 临时授权、回调校验和访问权限控制
 - 视频课程管理已经可以登记和绑定视频 ID，真实媒资处理下一步接 OSS/VOD

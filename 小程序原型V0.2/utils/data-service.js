@@ -119,7 +119,7 @@ async function createUploadAndAnalysisTask(video) {
     analysisConsent: Boolean(video.analysisConsent),
     caseConsent: Boolean(video.caseConsent)
   });
-  await uploadVideoFile(uploadToken.uploadUrl, video.path);
+  await uploadVideoFile(uploadToken.uploadUrl, video.path, uploadToken.uploadFormData);
   await api.updateUploadStatus(uploadToken.videoId, {
     uploadStatus: "uploaded",
     uploadProgress: 100,
@@ -142,7 +142,7 @@ async function createUploadAndAnalysisTask(video) {
   return task;
 }
 
-function uploadVideoFile(uploadUrl, filePath) {
+function uploadVideoFile(uploadUrl, filePath, formData = {}) {
   return new Promise((resolve, reject) => {
     if (!uploadUrl || !filePath) {
       reject(new Error("缺少视频上传地址或本地文件路径"));
@@ -152,6 +152,7 @@ function uploadVideoFile(uploadUrl, filePath) {
       url: uploadUrl,
       filePath,
       name: "file",
+      formData,
       success: (res) => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res);

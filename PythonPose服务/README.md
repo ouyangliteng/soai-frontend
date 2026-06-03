@@ -122,11 +122,23 @@ SOAI_POSE_MODEL_PROVIDER=yolo-pose
 Docker 方式：
 
 ```bash
-mkdir -p /data/soai-models
-# 将 yolo11n-pose.pt 放到 /data/soai-models/yolo11n-pose.pt
 docker compose -f docker-compose.yolo.yml up -d --build
 curl http://127.0.0.1:8793/v1/pose/providers
 ```
+
+阿里云/服务器方式：
+
+```bash
+mkdir -p /data/soai-storage/uploads /data/soai-storage/frames /data/soai-storage/db
+docker compose -f docker-compose.aliyun.yml up -d --build
+curl http://127.0.0.1:8793/health
+```
+
+说明：
+
+- `docker-compose.yolo.yml` 面向本机开发，挂载当前仓库的后端 storage 目录。
+- `docker-compose.aliyun.yml` 面向服务器内测，挂载 `/data/soai-storage`。
+- `yolo11n-pose.pt` 会由 Ultralytics 自动解析或下载；正式稳定后也可以改为固定模型路径。
 
 ## 5. RTMPose 配置
 
@@ -211,7 +223,7 @@ rightWrist, leftHip, rightHip, leftKnee, rightKnee, leftAnkle, rightAnkle
 ## 8. 生产注意
 
 - Python 服务建议只监听内网地址，不直接暴露公网。
-- YOLO/RTMPose 模型文件放在 `/data/soai-models`，不要提交到代码仓库。
+- YOLO/RTMPose 模型文件可以放在 `/data/soai-models`，不要提交到代码仓库。
 - 第一阶段先用 CPU 验证链路；正式视频量上来后再上 GPU 实例。
 - Node 只消费标准关键点 JSON，不绑定具体模型，方便后续替换模型。
 - 服务会缓存已加载的模型，避免每次视频分析重复初始化 YOLO/RTMPose。

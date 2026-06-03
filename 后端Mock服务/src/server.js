@@ -132,6 +132,7 @@ function createServer() {
           videoId: video.id,
           uploadUrl: video.uploadUrl,
           uploadMethod: video.uploadMethod,
+          uploadFormData: video.uploadFormData || {},
           storageProvider: video.storageProvider,
           storageKey: video.storageKey,
           storageUrl: video.storageUrl,

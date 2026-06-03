@@ -1,7 +1,9 @@
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const STORAGE_ROOT = process.env.SOAI_STORAGE_ROOT || path.join(__dirname, "..", "storage");
+const OSS_EXPIRES_SEC = Number(process.env.ALIYUN_OSS_UPLOAD_EXPIRES_SEC || 900);
 
 function ensureStorageRoot() {
   fs.mkdirSync(path.join(STORAGE_ROOT, "uploads"), { recursive: true });
@@ -9,6 +11,9 @@ function ensureStorageRoot() {
 }
 
 function createUploadTarget(video, requestMeta) {
+  if (process.env.SOAI_STORAGE_PROVIDER === "aliyun-oss") {
+    return createAliyunOssUploadTarget(video);
+  }
   ensureStorageRoot();
   const ext = path.extname(video.fileName || "") || ".mp4";
   const storageKey = `uploads/${video.id}${ext}`;
@@ -22,6 +27,70 @@ function createUploadTarget(video, requestMeta) {
     uploadMethod: "POST",
     expiresInSec: 900
   };
+}
+
+function createAliyunOssUploadTarget(video) {
+  const bucket = process.env.ALIYUN_OSS_BUCKET || "";
+  const endpoint = normalizeOssEndpoint(process.env.ALIYUN_OSS_ENDPOINT || "", process.env.ALIYUN_OSS_REGION || "", bucket);
+  const accessKeyId = process.env.ALIYUN_ACCESS_KEY_ID || "";
+  const accessKeySecret = process.env.ALIYUN_ACCESS_KEY_SECRET || "";
+  if (!bucket || !endpoint || !accessKeyId || !accessKeySecret) {
+    throw new Error("阿里云 OSS 直传未配置完整，请检查 ALIYUN_OSS_BUCKET、ALIYUN_OSS_ENDPOINT/REGION、ALIYUN_ACCESS_KEY_ID、ALIYUN_ACCESS_KEY_SECRET。");
+  }
+
+  const ext = path.extname(video.fileName || "") || ".mp4";
+  const storageKey = `uploads/${video.id}${ext}`;
+  const expireAt = new Date(Date.now() + OSS_EXPIRES_SEC * 1000).toISOString();
+  const maxBytes = Number(process.env.SOAI_MAX_UPLOAD_MB || 150) * 1024 * 1024;
+  const policy = Buffer.from(JSON.stringify({
+    expiration: expireAt,
+    conditions: [
+      ["content-length-range", 1, maxBytes],
+      ["eq", "$key", storageKey],
+      ["starts-with", "$Content-Type", "video/"]
+    ]
+  })).toString("base64");
+  const signature = crypto
+    .createHmac("sha1", accessKeySecret)
+    .update(policy)
+    .digest("base64");
+  const uploadUrl = `${endpoint.replace(/\/$/, "")}`;
+  const publicBase = (process.env.ALIYUN_OSS_PUBLIC_BASE_URL || uploadUrl).replace(/\/$/, "");
+
+  return {
+    storageProvider: "aliyun-oss",
+    storageKey,
+    storagePath: "",
+    storageUrl: `${publicBase}/${storageKey}`,
+    uploadUrl,
+    uploadMethod: "POST",
+    uploadFormData: {
+      key: storageKey,
+      policy,
+      OSSAccessKeyId: accessKeyId,
+      signature,
+      success_action_status: "200",
+      "Content-Type": getVideoContentType(video.fileName)
+    },
+    expiresInSec: OSS_EXPIRES_SEC
+  };
+}
+
+function normalizeOssEndpoint(endpoint, region, bucket) {
+  if (endpoint) {
+    const normalized = endpoint.startsWith("http") ? endpoint : `https://${endpoint}`;
+    const url = new URL(normalized);
+    if (bucket && (url.hostname === `${region}.aliyuncs.com` || url.hostname.startsWith("oss-"))) {
+      return `${url.protocol}//${bucket}.${url.hostname}`;
+    }
+    return normalized;
+  }
+  if (!region) return "";
+  return bucket ? `https://${bucket}.${region}.aliyuncs.com` : `https://${region}.aliyuncs.com`;
+}
+
+function getVideoContentType(fileName = "") {
+  return path.extname(fileName).toLowerCase() === ".mov" ? "video/quicktime" : "video/mp4";
 }
 
 function getRequestBaseUrl(requestMeta) {
@@ -90,6 +159,7 @@ function getStorageFilePath(storageKey = "") {
 module.exports = {
   STORAGE_ROOT,
   createUploadTarget,
+  createAliyunOssUploadTarget,
   saveUploadedVideo,
   buildFramePath,
   toStorageUrl,
