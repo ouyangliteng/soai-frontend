@@ -1,6 +1,7 @@
 const http = require("http");
+const crypto = require("crypto");
 const { URL } = require("url");
-const { db, saveDb } = require("./data");
+const { db, ensureStudentProfile, getStudentProfile, saveDb } = require("./data");
 const {
   completeTask,
   getTaskView,
@@ -64,6 +65,10 @@ function createServer() {
             poseProvider: process.env.SOAI_POSE_PROVIDER || "synthetic"
           }
         });
+      }
+
+      if (url.pathname.startsWith("/api/lite/v1/")) {
+        return handleLiteRequest(req, res, url);
       }
 
       const mockUploadMatch = url.pathname.match(/^\/mock-upload\/([^/]+)$/);
@@ -436,6 +441,215 @@ function createServer() {
       return sendError(res, 500, "INTERNAL_ERROR", error.message);
     }
   });
+}
+
+async function handleLiteRequest(req, res, url) {
+  const path = url.pathname.replace(/^\/api\/lite\/v1/, "") || "/";
+
+  if (req.method === "POST" && path === "/auth/wx-login") {
+    const payload = await readJson(req);
+    const anonymousId = sanitizeIdentity(payload.anonymousId || payload.code || `${Date.now()}`);
+    const studentId = `student_lite_${shortHash(anonymousId)}`;
+    const profile = ensureStudentProfile(studentId, {
+      userId: `lite_${anonymousId}`,
+      name: payload.name || "内测学员",
+      avatarUrl: payload.avatarUrl || ""
+    });
+    return send(res, 200, {
+      token: `lite_${studentId}`,
+      profile,
+      expiresInSec: 30 * 24 * 60 * 60
+    });
+  }
+
+  const identity = getLiteIdentity(req);
+  if (!identity.studentId) {
+    return sendError(res, 401, "LITE_UNAUTHORIZED", "请先登录后再使用学员端。");
+  }
+  const profile = ensureStudentProfile(identity.studentId);
+
+  if (req.method === "GET" && path === "/student/profile") {
+    return send(res, 200, { profile });
+  }
+
+  if (req.method === "POST" && path === "/student/profile") {
+    const payload = await readJson(req);
+    const updated = ensureStudentProfile(identity.studentId, payload);
+    db.reports
+      .filter((report) => report.studentId === identity.studentId)
+      .forEach((report) => {
+        report.studentSnapshot = {
+          ...report.studentSnapshot,
+          id: report.studentSnapshot.id,
+          ...updated
+        };
+      });
+    saveDb();
+    return send(res, 200, { success: true, profileId: updated.id, profile: updated });
+  }
+
+  if (req.method === "GET" && path === "/upload/quota") {
+    return send(res, 200, getDailyUploadQuota(identity.studentId));
+  }
+
+  if (req.method === "POST" && path === "/videos/upload-token") {
+    const quota = getDailyUploadQuota(identity.studentId);
+    if (quota.remaining <= 0) {
+      return send(res, 429, {
+        code: "DAILY_UPLOAD_LIMIT_REACHED",
+        message: `今天已达到 ${quota.limit} 次训练视频分析上限，请明天再上传。`,
+        quota
+      });
+    }
+
+    const payload = await readJson(req);
+    const validation = validateVideo(payload);
+    if (validation) return send(res, 400, validation);
+
+    const video = {
+      id: `video_${Date.now()}`,
+      studentId: identity.studentId,
+      coachId: profile.coachId || "",
+      fileName: payload.fileName,
+      fileUrl: "",
+      storageProvider: "",
+      storageKey: "",
+      storagePath: "",
+      storageUrl: "",
+      durationSec: payload.durationSec,
+      sizeMb: payload.sizeMb,
+      format: payload.format,
+      cameraAngle: payload.cameraAngle || "left",
+      uploadStatus: "selected",
+      uploadProgress: 0,
+      uploadError: "",
+      analysisConsent: Boolean(payload.analysisConsent),
+      caseConsent: Boolean(payload.caseConsent),
+      consentAt: new Date().toISOString(),
+      createdAt: new Date().toISOString()
+    };
+    Object.assign(video, createUploadTarget(video, req));
+    db.videos.push(video);
+    saveDb();
+    return send(res, 200, {
+      videoId: video.id,
+      uploadUrl: video.uploadUrl,
+      uploadMethod: video.uploadMethod,
+      uploadFormData: video.uploadFormData || {},
+      storageProvider: video.storageProvider,
+      storageKey: video.storageKey,
+      storageUrl: video.storageUrl,
+      maxSizeMb: Number(process.env.SOAI_MAX_UPLOAD_MB || 150),
+      expiresInSec: 900,
+      quota: getDailyUploadQuota(identity.studentId)
+    });
+  }
+
+  const uploadStatusMatch = path.match(/^\/videos\/([^/]+)\/upload-status$/);
+  if (req.method === "POST" && uploadStatusMatch) {
+    const video = db.videos.find((item) => item.id === uploadStatusMatch[1] && item.studentId === identity.studentId);
+    if (!video) return sendError(res, 404, "VIDEO_NOT_FOUND", "未找到视频记录。");
+    const payload = await readJson(req);
+    Object.assign(video, payload);
+    saveDb();
+    return send(res, 200, { success: true, video });
+  }
+
+  if (req.method === "POST" && path === "/analysis/tasks") {
+    const payload = await readJson(req);
+    const video = db.videos.find((item) => item.id === payload.videoId && item.studentId === identity.studentId);
+    if (!video) return sendError(res, 404, "VIDEO_NOT_FOUND", "未找到视频记录。");
+
+    const task = {
+      id: `task_${Date.now()}`,
+      studentId: identity.studentId,
+      videoId: payload.videoId,
+      status: "queued",
+      progress: 5,
+      progressText: "训练视频已上传，等待 AI 分析",
+      retryCount: 0,
+      errorCode: "",
+      errorMessage: "",
+      reportId: "",
+      frames: [],
+      poseDetections: [],
+      ruleResults: [],
+      logs: [{
+        stage: "queued",
+        level: "info",
+        message: "分析任务已创建。",
+        at: new Date().toISOString()
+      }],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    db.tasks.push(task);
+    saveDb();
+    return send(res, 200, { taskId: task.id, status: task.status });
+  }
+
+  const taskMatch = path.match(/^\/analysis\/tasks\/([^/]+)$/);
+  if (req.method === "GET" && taskMatch) {
+    const task = db.tasks.find((item) => item.id === taskMatch[1] && item.studentId === identity.studentId);
+    if (!task) return sendError(res, 404, "TASK_NOT_FOUND", "未找到分析任务。");
+    await completeTask(task);
+    return send(res, 200, getTaskView(task));
+  }
+
+  const reportMatch = path.match(/^\/reports\/([^/]+)$/);
+  if (req.method === "GET" && reportMatch) {
+    const report = db.reports.find((item) => item.id === reportMatch[1] && item.studentId === identity.studentId);
+    if (!report) return sendError(res, 404, "REPORT_NOT_FOUND", "未找到报告。");
+    return send(res, 200, { report });
+  }
+
+  if (req.method === "GET" && path === "/reports") {
+    return send(res, 200, getTrend(identity.studentId, url.searchParams.get("limit") || 10));
+  }
+
+  if (req.method === "GET" && path === "/students/me/trends") {
+    return send(res, 200, getTrend(identity.studentId, url.searchParams.get("limit") || 10));
+  }
+
+  return sendError(res, 404, "LITE_NOT_FOUND", "学员端接口不存在。");
+}
+
+function getLiteIdentity(req) {
+  const auth = req.headers.authorization || "";
+  const token = auth.replace(/^Bearer\s+/i, "").trim();
+  if (token.startsWith("lite_student_lite_")) {
+    return { studentId: token.slice("lite_".length), token };
+  }
+  const headerStudentId = req.headers["x-soai-lite-student-id"];
+  if (headerStudentId) return { studentId: String(headerStudentId), token };
+  return { studentId: "", token };
+}
+
+function getDailyUploadQuota(studentId) {
+  const limit = Number(process.env.SOAI_LITE_DAILY_UPLOAD_LIMIT || 3);
+  const dateKey = chinaDateKey(new Date());
+  const used = db.videos.filter((video) => (
+    video.studentId === studentId &&
+    chinaDateKey(new Date(video.createdAt)) === dateKey
+  )).length;
+  return {
+    limit,
+    used,
+    remaining: Math.max(0, limit - used),
+    date: dateKey
+  };
+}
+
+function chinaDateKey(date) {
+  return new Date(date.getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+function sanitizeIdentity(value) {
+  return String(value || "anonymous").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64) || "anonymous";
+}
+
+function shortHash(value) {
+  return crypto.createHash("sha1").update(String(value)).digest("hex").slice(0, 12);
 }
 
 function validateVideo(payload) {

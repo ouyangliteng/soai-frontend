@@ -33,6 +33,9 @@ const profile = {
 
 const db = {
   profile,
+  profiles: {
+    [profile.id]: profile
+  },
   videos: [],
   tasks: [],
   reports: [],
@@ -162,6 +165,7 @@ function saveDb() {
     version: 1,
     savedAt: now(),
     profile: db.profile,
+    profiles: db.profiles,
     videos: db.videos,
     tasks: db.tasks,
     reports: db.reports,
@@ -179,6 +183,38 @@ function saveDb() {
     adminSettings: db.adminSettings
   }, null, 2));
   fs.renameSync(tmpFile, DB_FILE);
+}
+
+function ensureStudentProfile(studentId, patch = {}) {
+  if (!db.profiles) db.profiles = {};
+  if (!db.profiles[studentId]) {
+    db.profiles[studentId] = {
+      ...profile,
+      id: studentId,
+      userId: patch.userId || `wx_${studentId}`,
+      name: patch.name || "内测学员",
+      avatarUrl: patch.avatarUrl || "",
+      phone: patch.phone || "",
+      coachId: patch.coachId || "",
+      coachName: patch.coachName || "",
+      clubId: patch.clubId || "",
+      clubName: patch.clubName || "",
+      createdAt: now(),
+      updatedAt: now()
+    };
+  } else {
+    Object.assign(db.profiles[studentId], patch, {
+      id: studentId,
+      updatedAt: now()
+    });
+  }
+  return db.profiles[studentId];
+}
+
+function getStudentProfile(studentId) {
+  if (db.profiles && db.profiles[studentId]) return db.profiles[studentId];
+  if (studentId === db.profile.id) return db.profile;
+  return ensureStudentProfile(studentId);
 }
 
 function createReport(id, videoId, taskId, trainingDate, overallScore, postureControl, rhythmControl, stability, riskCount, coachReviewStatus = "pending") {
@@ -241,14 +277,16 @@ function createReport(id, videoId, taskId, trainingDate, overallScore, postureCo
 
 function createReportFromTask(task) {
   const video = db.videos.find((item) => item.id === task.videoId);
+  const reportProfile = getStudentProfile(video ? video.studentId : task.studentId);
+  const history = db.reports.filter((report) => report.studentId === reportProfile.id).slice(-5);
   const reportCreatedAt = new Date();
   const today = reportCreatedAt;
   const trainingDate = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
   const videoAvailableUntil = getNextDayIso(reportCreatedAt);
   const input = buildReportInput({
-    profile: db.profile,
+    profile: reportProfile,
     video,
-    history: db.reports.slice(-5)
+    history
   });
   const aiReport = generateTrainingReport(input);
   const validation = validateTrainingReport(aiReport);
@@ -257,10 +295,10 @@ function createReportFromTask(task) {
   }
   const report = {
     id: `report_${Date.now()}`,
-    studentId: db.profile.id,
+    studentId: reportProfile.id,
     videoId: task.videoId,
     taskId: task.id,
-    studentSnapshot: { ...db.profile },
+    studentSnapshot: { ...reportProfile },
     summary: {
       ...aiReport.summary,
       trainingDate
@@ -294,16 +332,17 @@ function createReportFromTask(task) {
 }
 
 function createReportFromAnalysis({ task, video, aiReport, poseSummary, frames, poseFrames, ruleResults }) {
+  const reportProfile = getStudentProfile(video ? video.studentId : task.studentId);
   const reportCreatedAt = new Date();
   const today = reportCreatedAt;
   const trainingDate = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
   const videoAvailableUntil = getNextDayIso(reportCreatedAt);
   const report = {
     id: `report_${Date.now()}`,
-    studentId: db.profile.id,
+    studentId: reportProfile.id,
     videoId: task.videoId,
     taskId: task.id,
-    studentSnapshot: { ...db.profile },
+    studentSnapshot: { ...reportProfile },
     summary: {
       ...aiReport.summary,
       trainingDate
@@ -376,6 +415,8 @@ loadDb();
 
 module.exports = {
   db,
+  ensureStudentProfile,
+  getStudentProfile,
   createReportFromTask,
   createReportFromAnalysis,
   saveDb
