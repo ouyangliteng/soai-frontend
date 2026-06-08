@@ -53,6 +53,19 @@ async function main() {
     assert.strictEqual(repeatedTask.status, "completed");
     assert.strictEqual(repeatedTask.reportId, firstTaskDone.reportId);
 
+    const reportFeedback = await request(baseUrl, "POST", `/api/lite/v1/reports/${firstTaskDone.reportId}/feedback`, {
+      role: "coach",
+      accuracyRating: 3,
+      usefulnessRating: 5,
+      correctionText: "小腿位置判断偏紧，现场观察更稳定。",
+      comment: "建议把该视频作为角度偏差修正样本。",
+      tags: ["角度数据偏差", "教练已确认"],
+      aiLearningConsent: true
+    }, headers);
+    assert.strictEqual(reportFeedback.success, true);
+    assert.strictEqual(reportFeedback.feedback.reportId, firstTaskDone.reportId);
+    assert.strictEqual(reportFeedback.feedback.correctionText.includes("小腿位置"), true);
+
     const uniqueVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
       fileName: "training-unique.mp4",
       sizeMb: 20,

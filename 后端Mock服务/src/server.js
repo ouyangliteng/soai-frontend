@@ -646,6 +646,22 @@ async function handleLiteRequest(req, res, url) {
     return send(res, 200, { report });
   }
 
+  const reportFeedbackMatch = path.match(/^\/reports\/([^/]+)\/feedback$/);
+  if (req.method === "POST" && reportFeedbackMatch) {
+    const report = db.reports.find((item) => item.id === reportFeedbackMatch[1] && item.studentId === identity.studentId);
+    if (!report) return sendError(res, 404, "REPORT_NOT_FOUND", "未找到报告。");
+    const payload = await readJson(req);
+    const feedback = submitFeedback({
+      ...payload,
+      source: "lite_report_detail",
+      studentId: identity.studentId,
+      reportId: report.id,
+      videoId: report.videoId,
+      relatedFields: payload.relatedFields || ["overallScore", "ruleResults", "safetyRidingEvaluation"]
+    });
+    return send(res, 200, { success: true, feedback });
+  }
+
   if (req.method === "GET" && path === "/reports") {
     return send(res, 200, getTrend(identity.studentId, url.searchParams.get("limit") || 10));
   }

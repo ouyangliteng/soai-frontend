@@ -69,6 +69,10 @@ function submitFeedback(payload = {}) {
     usefulnessRating: normalizeRating(payload.usefulnessRating),
     uploadExperienceRating: normalizeRating(payload.uploadExperienceRating),
     comment: String(payload.comment || ""),
+    correctionText: String(payload.correctionText || ""),
+    correctedScores: payload.correctedScores && typeof payload.correctedScores === "object" ? payload.correctedScores : {},
+    aiLearningConsent: payload.aiLearningConsent !== false,
+    relatedFields: Array.isArray(payload.relatedFields) ? payload.relatedFields : [],
     tags: Array.isArray(payload.tags) ? payload.tags : [],
     contact: payload.contact || "",
     createdAt: payload.createdAt || new Date().toISOString()
