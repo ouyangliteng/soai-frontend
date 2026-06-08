@@ -121,6 +121,7 @@ function createServer() {
           durationSec: payload.durationSec,
           sizeMb: payload.sizeMb,
           format: payload.format,
+          videoSignature: buildVideoSignature(db.profile.id, payload),
           cameraAngle: payload.cameraAngle || "left",
           uploadStatus: "selected",
           uploadProgress: 0,
@@ -446,6 +447,11 @@ function createServer() {
 async function handleLiteRequest(req, res, url) {
   const path = url.pathname.replace(/^\/api\/lite\/v1/, "") || "/";
 
+  const storageMatch = path.match(/^\/storage\/(.+)$/);
+  if (req.method === "GET" && storageMatch) {
+    return sendStorageFile(res, storageMatch[1]);
+  }
+
   if (req.method === "POST" && path === "/auth/wx-login") {
     const payload = await readJson(req);
     const anonymousId = sanitizeIdentity(payload.anonymousId || payload.code || `${Date.now()}`);
@@ -519,6 +525,7 @@ async function handleLiteRequest(req, res, url) {
       durationSec: payload.durationSec,
       sizeMb: payload.sizeMb,
       format: payload.format,
+      videoSignature: buildVideoSignature(identity.studentId, payload),
       cameraAngle: payload.cameraAngle || "left",
       uploadStatus: "selected",
       uploadProgress: 0,
@@ -559,6 +566,42 @@ async function handleLiteRequest(req, res, url) {
     const payload = await readJson(req);
     const video = db.videos.find((item) => item.id === payload.videoId && item.studentId === identity.studentId);
     if (!video) return sendError(res, 404, "VIDEO_NOT_FOUND", "未找到视频记录。");
+
+    const existingReport = findExistingReportForVideo(identity.studentId, video);
+    if (existingReport) {
+      const task = {
+        id: `task_${Date.now()}`,
+        studentId: identity.studentId,
+        videoId: payload.videoId,
+        status: "completed",
+        progress: 100,
+        progressText: "已识别为同一训练视频，直接复用原分析报告。",
+        retryCount: 0,
+        errorCode: "",
+        errorMessage: "",
+        reportId: existingReport.id,
+        frames: [],
+        poseDetections: [],
+        ruleResults: [],
+        logs: [{
+          stage: "deduplicated",
+          level: "info",
+          message: `复用报告 ${existingReport.id}，未重复分析同一视频。`,
+          at: new Date().toISOString()
+        }],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      db.tasks.push(task);
+      saveDb();
+      return send(res, 200, {
+        taskId: task.id,
+        status: task.status,
+        reportId: task.reportId,
+        progressText: task.progressText,
+        createdAt: task.createdAt
+      });
+    }
 
     const task = {
       id: `task_${Date.now()}`,
@@ -650,6 +693,22 @@ function sanitizeIdentity(value) {
 
 function shortHash(value) {
   return crypto.createHash("sha1").update(String(value)).digest("hex").slice(0, 12);
+}
+
+function buildVideoSignature(studentId, payload) {
+  const fileName = String(payload.fileName || payload.filename || "").trim().toLowerCase();
+  const sizeMb = Number(payload.sizeMb || 0).toFixed(1);
+  const durationSec = Math.round(Number(payload.durationSec || 0));
+  const format = String(payload.format || "").trim().toLowerCase();
+  return shortHash([studentId, fileName, sizeMb, durationSec, format].join("|"));
+}
+
+function findExistingReportForVideo(studentId, video) {
+  const signature = video.videoSignature || buildVideoSignature(studentId, video);
+  if (!signature) return null;
+  return db.reports
+    .filter((report) => report.studentId === studentId && report.videoSignature === signature)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] || null;
 }
 
 function validateVideo(payload) {

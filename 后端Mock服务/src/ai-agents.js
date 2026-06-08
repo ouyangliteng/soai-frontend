@@ -80,10 +80,12 @@ function generateTrainingReport(input) {
     summary: {
       overallScore,
       oneLineConclusion: "本次训练节奏较稳定，转弯阶段身体控制仍需加强。",
+      safetyRidingEvaluation: buildSafetyRidingEvaluation({ scores, mainProblem, mainRisk, confidenceLevel }),
       confidenceLevel,
       coachReviewRecommended: true
     },
     scores,
+    safetyRidingEvaluation: buildSafetyRidingEvaluation({ scores, mainProblem, mainRisk, confidenceLevel }),
     problemPoints: [
       {
         ruleResultId: mainProblem ? mainProblem.ruleResultId : "",
@@ -121,6 +123,23 @@ function generateTrainingReport(input) {
     poseSummary: input.poseSummary || null,
     ruleResults
   };
+}
+
+function buildSafetyRidingEvaluation({ scores, mainProblem, mainRisk, confidenceLevel }) {
+  const stabilityText = scores.stability >= 84
+    ? "本次骑坐稳定性整体可控，基础姿态能支持常规训练节奏。"
+    : "本次骑坐稳定性仍需提高，建议先降低动作复杂度，保持肩、髋、脚跟接近垂直线。";
+  const aidText = scores.aidAccuracy >= 84
+    ? "手部与腿部扶助较清晰，继续保持轻柔、连续、可预测的扶助节奏。"
+    : "扶助准确性存在波动，建议通过教学耳机保持即时沟通，避免在失衡时继续加速或加大扶助。";
+  const riskText = mainRisk
+    ? `${mainRisk.metricName}需要重点复核：${mainRisk.explanation}训练中如出现紧张、路线偏移或身体明显失衡，应先回到慢速节奏。`
+    : "AI 未标记明显中高风险动作，但仍需结合马匹状态、场地干扰和学员体感进行现场判断。";
+  const productText = "建议训练时规范佩戴马术头盔、护甲等防护装备；使用充气护甲时应确认气瓶、连接绳和触发位置正确，教学耳机用于保持教练即时指令畅通。";
+  const boundaryText = confidenceLevel === "high"
+    ? "本次视频可作为训练复盘参考，但安全结论仍以教练现场判断为准。"
+    : "本次视频角度或遮挡可能影响识别精度，安全结论必须由教练结合现场情况复核。";
+  return [stabilityText, aidText, riskText, productText, boundaryText];
 }
 
 function validateTrainingReport(report) {

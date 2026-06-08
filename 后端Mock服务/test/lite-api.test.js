@@ -22,18 +22,47 @@ async function main() {
     assert.strictEqual(initialQuota.limit, 3);
     assert.strictEqual(initialQuota.remaining, 3);
 
-    for (let index = 0; index < 3; index += 1) {
-      const token = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
-        fileName: `training-${index}.mp4`,
-        sizeMb: 20,
-        durationSec: 20,
-        format: "mp4",
-        analysisConsent: true,
-        caseConsent: false
-      }, headers);
-      assert.ok(token.videoId);
-      assert.strictEqual(token.quota.remaining, 2 - index);
-    }
+    const firstVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
+      fileName: "repeat-training.mp4",
+      sizeMb: 20,
+      durationSec: 20,
+      format: "mp4",
+      analysisConsent: true,
+      caseConsent: false
+    }, headers);
+    assert.ok(firstVideo.videoId);
+
+    const firstTask = await request(baseUrl, "POST", "/api/lite/v1/analysis/tasks", {
+      videoId: firstVideo.videoId
+    }, headers);
+    const firstTaskDone = await request(baseUrl, "GET", `/api/lite/v1/analysis/tasks/${firstTask.taskId}`, null, headers);
+    assert.strictEqual(firstTaskDone.status, "completed");
+    assert.ok(firstTaskDone.reportId);
+
+    const repeatedVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
+      fileName: "repeat-training.mp4",
+      sizeMb: 20,
+      durationSec: 20,
+      format: "mp4",
+      analysisConsent: true,
+      caseConsent: false
+    }, headers);
+    const repeatedTask = await request(baseUrl, "POST", "/api/lite/v1/analysis/tasks", {
+      videoId: repeatedVideo.videoId
+    }, headers);
+    assert.strictEqual(repeatedTask.status, "completed");
+    assert.strictEqual(repeatedTask.reportId, firstTaskDone.reportId);
+
+    const uniqueVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
+      fileName: "training-unique.mp4",
+      sizeMb: 20,
+      durationSec: 20,
+      format: "mp4",
+      analysisConsent: true,
+      caseConsent: false
+    }, headers);
+    assert.ok(uniqueVideo.videoId);
+    assert.strictEqual(uniqueVideo.quota.remaining, 0);
 
     const quotaAfter = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
     assert.strictEqual(quotaAfter.used, 3);
