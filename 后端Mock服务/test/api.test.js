@@ -1,5 +1,8 @@
 const assert = require("assert");
 const http = require("http");
+
+process.env.SOAI_MAX_VIDEO_DURATION_SEC = "60";
+
 const { createServer } = require("../src/server");
 
 async function main() {

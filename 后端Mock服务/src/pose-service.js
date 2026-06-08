@@ -27,13 +27,14 @@ async function detectPose(frames, video, task) {
     try {
       return await detectPoseByHttp(frames, video, task, provider);
     } catch (error) {
+      const allowSyntheticFallback = process.env.SOAI_POSE_ALLOW_SYNTHETIC_FALLBACK === "true";
       task.logs.push({
         stage: "detecting_pose",
-        level: provider === "auto" ? "warn" : "error",
-        message: `Python Pose Service 调用失败：${error.message}${provider === "auto" ? "，已回退到本地模拟关键点。" : ""}`,
+        level: provider === "auto" && allowSyntheticFallback ? "warn" : "error",
+        message: `Python Pose Service 调用失败：${error.message}${provider === "auto" && allowSyntheticFallback ? "，已回退到本地模拟关键点。" : ""}`,
         at: new Date().toISOString()
       });
-      if (provider !== "auto") throw error;
+      if (provider !== "auto" || !allowSyntheticFallback) throw error;
     }
   } else if (provider !== "synthetic") {
     task.logs.push({

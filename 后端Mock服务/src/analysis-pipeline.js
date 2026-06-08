@@ -15,6 +15,7 @@ async function runAnalysisPipeline({ db, task, video, createReport }) {
 
     setStage(task, "detecting_pose", 45, "正在识别骑手人体关键点");
     const poseFrames = await detectPose(frames, video, task);
+    assertRealPoseIfRequired(poseFrames);
     task.poseDetections = poseFrames;
 
     setStage(task, "applying_rules", 68, "正在应用马术动作规则引擎");
@@ -65,9 +66,9 @@ async function runAnalysisPipeline({ db, task, video, createReport }) {
     return task;
   } catch (error) {
     task.status = "failed";
-    task.progressText = "分析失败，请重试";
+    task.progressText = "真实姿态识别失败，请稍后重试";
     task.errorCode = "ANALYSIS_PIPELINE_FAILED";
-    task.errorMessage = error.message;
+    task.errorMessage = formatAnalysisError(error);
     task.logs.push({
       stage: task.status,
       level: "error",
@@ -77,6 +78,25 @@ async function runAnalysisPipeline({ db, task, video, createReport }) {
     task.updatedAt = new Date().toISOString();
     return task;
   }
+}
+
+function assertRealPoseIfRequired(poseFrames) {
+  if (process.env.SOAI_REQUIRE_REAL_POSE !== "true") return;
+  const provider = poseFrames && poseFrames[0] ? poseFrames[0].provider : "";
+  if (!poseFrames || !poseFrames.length || !provider || provider === "synthetic") {
+    throw new Error("真实姿态模型未返回可用关节点，请确认 Python Pose Service 和 YOLO-Pose 模型已启动。");
+  }
+}
+
+function formatAnalysisError(error) {
+  const message = error && error.message ? error.message : "真实姿态识别失败，请稍后重试。";
+  if (/timeout|timed out|超时/i.test(message)) {
+    return "真实姿态识别超时，请稍后重试。";
+  }
+  if (/ECONNREFUSED|fetch failed|Python Pose Service|姿态模型|YOLO|provider/i.test(message)) {
+    return message;
+  }
+  return "真实姿态识别失败，请稍后重试。";
 }
 
 function buildPoseSummary(frames, poseFrames) {

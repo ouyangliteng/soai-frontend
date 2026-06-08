@@ -4,6 +4,7 @@ const http = require("http");
 process.env.SOAI_POSE_PROVIDER = "http";
 process.env.SOAI_POSE_MODEL_PROVIDER = "yolo-pose";
 process.env.SOAI_POSE_SERVICE_TIMEOUT_MS = "500";
+process.env.SOAI_REQUIRE_REAL_POSE = "true";
 
 const { createServer } = require("../src/server");
 
@@ -76,6 +77,7 @@ async function main() {
 
     const reportRes = await request(baseUrl, "GET", `/api/reports/${task.reportId}`);
     assert.strictEqual(reportRes.report.poseSummary.modelProvider, "yolo-pose");
+    assert.strictEqual(reportRes.report.poseTrack.quality, "detected");
     assert.ok(reportRes.report.poseSummary.averageConfidence >= 0.8);
     assert.ok(reportRes.report.ruleResults.length >= 5);
     assert.ok(reportRes.report.problemPoints.length >= 1);

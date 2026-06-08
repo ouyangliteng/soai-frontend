@@ -2,11 +2,12 @@ const fs = require("fs");
 const { spawnSync } = require("child_process");
 const { buildFramePath, toStorageUrl } = require("./storage");
 
-const DEFAULT_FPS = Number(process.env.SOAI_FRAME_FPS || 4);
+const DEFAULT_FPS = Number(process.env.SOAI_FRAME_FPS || 1);
 
 function extractFrames(video, task) {
-  const durationSec = clamp(Number(video.durationSec || 30), 10, 60);
-  const fps = clamp(DEFAULT_FPS, 3, 5);
+  const maxDurationSec = Number(process.env.SOAI_MAX_VIDEO_DURATION_SEC || 15);
+  const durationSec = clamp(Number(video.durationSec || 10), 10, maxDurationSec);
+  const fps = clamp(DEFAULT_FPS, 1, 2);
   const targetFrameCount = Math.max(1, Math.round(durationSec * fps));
 
   if (video.storagePath && fs.existsSync(video.storagePath) && hasFfmpeg()) {

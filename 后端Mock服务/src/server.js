@@ -779,6 +779,7 @@ function isSameStableVideo(report, payload) {
 }
 
 function validateVideo(payload) {
+  const maxDurationSec = Number(process.env.SOAI_MAX_VIDEO_DURATION_SEC || 15);
   if (!payload.analysisConsent) {
     return { code: "VIDEO_CONSENT_REQUIRED", message: "请先确认视频仅用于本次训练分析和教练复核。" };
   }
@@ -791,8 +792,8 @@ function validateVideo(payload) {
   if (Number(payload.durationSec) < 10) {
     return { code: "VIDEO_TOO_SHORT", message: "视频片段过短，请上传至少 10 秒训练视频。" };
   }
-  if (Number(payload.durationSec) > 60) {
-    return { code: "VIDEO_TOO_LONG", message: "视频过长，请截取 60 秒以内关键训练片段。" };
+  if (Number(payload.durationSec) > maxDurationSec) {
+    return { code: "VIDEO_TOO_LONG", message: `真实姿态识别测试请上传 ${maxDurationSec} 秒以内关键训练片段。` };
   }
   return null;
 }

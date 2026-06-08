@@ -22,10 +22,21 @@ async function main() {
     assert.strictEqual(initialQuota.limit, 3);
     assert.strictEqual(initialQuota.remaining, 3);
 
+    const tooLongVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
+      fileName: "too-long-training.mp4",
+      sizeMb: 20,
+      durationSec: 16,
+      format: "mp4",
+      analysisConsent: true,
+      caseConsent: false
+    }, headers, { allowError: true });
+    assert.strictEqual(tooLongVideo.statusCode, 400);
+    assert.strictEqual(tooLongVideo.body.code, "VIDEO_TOO_LONG");
+
     const firstVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
       fileName: "repeat-training.mp4",
       sizeMb: 20,
-      durationSec: 20,
+      durationSec: 12,
       format: "mp4",
       analysisConsent: true,
       caseConsent: false
@@ -55,7 +66,7 @@ async function main() {
     const repeatedVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
       fileName: "training-from-album-different-name.mp4",
       sizeMb: 20,
-      durationSec: 20,
+      durationSec: 12,
       format: "mp4",
       analysisConsent: true,
       caseConsent: false
@@ -80,7 +91,7 @@ async function main() {
     const uniqueVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
       fileName: "training-unique.mp4",
       sizeMb: 21,
-      durationSec: 21,
+      durationSec: 13,
       format: "mp4",
       analysisConsent: true,
       caseConsent: false
@@ -91,7 +102,7 @@ async function main() {
     const secondUniqueVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
       fileName: "training-second-unique.mp4",
       sizeMb: 22,
-      durationSec: 22,
+      durationSec: 14,
       format: "mp4",
       analysisConsent: true,
       caseConsent: false
@@ -106,7 +117,7 @@ async function main() {
     const overLimit = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
       fileName: "training-over-limit.mp4",
       sizeMb: 23,
-      durationSec: 23,
+      durationSec: 15,
       format: "mp4",
       analysisConsent: true,
       caseConsent: false
