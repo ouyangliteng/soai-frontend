@@ -358,6 +358,7 @@ function createReportFromAnalysis({ task, video, aiReport, poseSummary, frames, 
     trendSummary: aiReport.trendSummary,
     limitations: aiReport.limitations,
     poseSummary,
+    poseTrack: buildPoseTrack(frames, poseFrames),
     ruleResults,
     frameSummary: {
       frameCount: frames.length,
@@ -401,6 +402,132 @@ function createReportFromAnalysis({ task, video, aiReport, poseSummary, frames, 
   db.reports.push(report);
   saveDb();
   return report;
+}
+
+function buildPoseTrack(frames = [], poseFrames = []) {
+  const frameMetaByIndex = new Map(frames.map((frame, index) => [
+    Number(frame.frameIndex || index + 1),
+    frame
+  ]));
+  const trackFrames = poseFrames
+    .slice(0, 180)
+    .map((poseFrame, index) => {
+      const frameMeta = frameMetaByIndex.get(Number(poseFrame.frameIndex)) || frames[index] || {};
+      const width = Number(frameMeta.width || 960);
+      const height = Number(frameMeta.height || 540);
+      const points = buildTrackPoints(poseFrame.keypoints || {}, width, height);
+      return {
+        frameIndex: Number(poseFrame.frameIndex || index + 1),
+        timeMs: Number(poseFrame.timestampMs || frameMeta.timestampMs || 0),
+        confidence: Number(poseFrame.poseConfidence || 0),
+        visibilityQuality: poseFrame.visibilityQuality || "low",
+        points
+      };
+    })
+    .filter((frame) => Object.keys(frame.points).length > 0);
+
+  return {
+    version: 1,
+    coordinateSystem: "normalized",
+    pointLabels: {
+      head: "头部",
+      leftShoulder: "左肩",
+      rightShoulder: "右肩",
+      leftElbow: "左肘",
+      rightElbow: "右肘",
+      waist: "腰部",
+      leftKnee: "左腿",
+      rightKnee: "右腿",
+      leftHeel: "左脚跟",
+      rightHeel: "右脚跟",
+      leftToe: "左脚尖",
+      rightToe: "右脚尖"
+    },
+    frames: trackFrames
+  };
+}
+
+function buildTrackPoints(keypoints, width, height) {
+  const points = {};
+  addTrackPoint(points, "head", keypoints.nose, width, height);
+  [
+    "leftShoulder",
+    "rightShoulder",
+    "leftElbow",
+    "rightElbow",
+    "leftKnee",
+    "rightKnee"
+  ].forEach((name) => addTrackPoint(points, name, keypoints[name], width, height));
+
+  const waist = midpoint(keypoints.leftHip, keypoints.rightHip, "waist");
+  addTrackPoint(points, "waist", waist, width, height);
+
+  addFootPoint(points, "left", keypoints, width, height);
+  addFootPoint(points, "right", keypoints, width, height);
+  return points;
+}
+
+function addFootPoint(points, side, keypoints, width, height) {
+  const ankleName = `${side}Ankle`;
+  const kneeName = `${side}Knee`;
+  const heelName = `${side}Heel`;
+  const toeName = `${side}Toe`;
+  const ankle = keypoints[ankleName];
+  if (!isUsablePoint(ankle)) return;
+
+  const heel = isUsablePoint(keypoints[heelName])
+    ? keypoints[heelName]
+    : deriveFootPoint(ankle, keypoints[kneeName], width, height, -0.34, heelName);
+  const toe = isUsablePoint(keypoints[toeName])
+    ? keypoints[toeName]
+    : deriveFootPoint(ankle, keypoints[kneeName], width, height, 0.82, toeName);
+  addTrackPoint(points, heelName, heel, width, height);
+  addTrackPoint(points, toeName, toe, width, height);
+}
+
+function deriveFootPoint(ankle, knee, width, height, direction, name) {
+  const base = isUsablePoint(knee)
+    ? { x: ankle.x - knee.x, y: ankle.y - knee.y }
+    : { x: width * 0.08, y: 0 };
+  const length = Math.max(18, Math.min(54, Math.sqrt(base.x * base.x + base.y * base.y) * 0.28));
+  const horizontal = Math.abs(base.x) >= 2 ? Math.sign(base.x) : 1;
+  return {
+    x: ankle.x + horizontal * length * direction,
+    y: ankle.y + height * 0.018,
+    confidence: Math.max(0.35, Number(ankle.confidence || 0) - 0.18),
+    derived: true,
+    derivedFrom: name.replace(/Heel|Toe/, "Ankle")
+  };
+}
+
+function addTrackPoint(points, name, point, width, height) {
+  if (!isUsablePoint(point)) return;
+  points[name] = {
+    x: clamp(Number(point.x) / width),
+    y: clamp(Number(point.y) / height),
+    confidence: Number(Number(point.confidence || 0).toFixed(2)),
+    derived: Boolean(point.derived)
+  };
+}
+
+function midpoint(left, right) {
+  if (isUsablePoint(left) && isUsablePoint(right)) {
+    return {
+      x: (left.x + right.x) / 2,
+      y: (left.y + right.y) / 2,
+      confidence: Math.min(left.confidence, right.confidence)
+    };
+  }
+  return isUsablePoint(left) ? left : right;
+}
+
+function isUsablePoint(point) {
+  return point && Number.isFinite(Number(point.x)) && Number.isFinite(Number(point.y)) && Number(point.confidence || 0) > 0;
+}
+
+function clamp(value) {
+  if (!Number.isFinite(value)) return 0;
+  return Number(Math.max(0, Math.min(1, value)).toFixed(4));
 }
 
 function pad(value) {

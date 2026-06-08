@@ -14,6 +14,13 @@ const KEYPOINT_NAMES = [
   "rightAnkle"
 ];
 
+const OPTIONAL_TRACK_KEYPOINT_NAMES = [
+  "leftHeel",
+  "rightHeel",
+  "leftToe",
+  "rightToe"
+];
+
 async function detectPose(frames, video, task) {
   const provider = process.env.SOAI_POSE_PROVIDER || "synthetic";
   if (provider === "http" || provider === "python" || provider === "auto") {
@@ -98,6 +105,14 @@ function normalizePoseFrame(frame, fallbackProvider) {
       x: Number(pointValue.x || 0),
       y: Number(pointValue.y || 0),
       confidence: Number(pointValue.confidence || 0)
+    };
+  });
+  OPTIONAL_TRACK_KEYPOINT_NAMES.forEach((name) => {
+    if (!frame.keypoints || !frame.keypoints[name]) return;
+    keypoints[name] = {
+      x: Number(frame.keypoints[name].x || 0),
+      y: Number(frame.keypoints[name].y || 0),
+      confidence: Number(frame.keypoints[name].confidence || 0)
     };
   });
   const poseConfidence = Number.isFinite(Number(frame.poseConfidence))

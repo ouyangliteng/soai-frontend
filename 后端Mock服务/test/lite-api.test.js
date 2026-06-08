@@ -39,6 +39,14 @@ async function main() {
     assert.strictEqual(firstTaskDone.status, "completed");
     assert.ok(firstTaskDone.reportId);
 
+    const firstReport = await request(baseUrl, "GET", `/api/lite/v1/reports/${firstTaskDone.reportId}`, null, headers);
+    assert.ok(firstReport.report.poseTrack);
+    assert.strictEqual(firstReport.report.poseTrack.coordinateSystem, "normalized");
+    assert.ok(firstReport.report.poseTrack.frames.length > 0);
+    assert.ok(firstReport.report.poseTrack.frames[0].points.head);
+    assert.ok(firstReport.report.poseTrack.frames[0].points.leftToe);
+    assert.strictEqual(firstReport.report.poseTrack.frames[0].points.leftToe.derived, true);
+
     const repeatedVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
       fileName: "repeat-training.mp4",
       sizeMb: 20,
