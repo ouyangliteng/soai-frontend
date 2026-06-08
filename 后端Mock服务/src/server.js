@@ -1,7 +1,7 @@
 const http = require("http");
 const crypto = require("crypto");
 const { URL } = require("url");
-const { db, ensureStudentProfile, getStudentProfile, saveDb } = require("./data");
+const { db, ensureStudentProfile, ensureReportPoseTrack, getStudentProfile, saveDb } = require("./data");
 const {
   completeTask,
   getTaskView,
@@ -643,6 +643,7 @@ async function handleLiteRequest(req, res, url) {
   if (req.method === "GET" && reportMatch) {
     const report = db.reports.find((item) => item.id === reportMatch[1] && item.studentId === identity.studentId);
     if (!report) return sendError(res, 404, "REPORT_NOT_FOUND", "未找到报告。");
+    ensureReportPoseTrack(report);
     return send(res, 200, { report });
   }
 

@@ -530,6 +530,27 @@ function clamp(value) {
   return Number(Math.max(0, Math.min(1, value)).toFixed(4));
 }
 
+function ensureReportPoseTrack(report) {
+  if (!report) return null;
+  if (report.poseTrack && report.poseTrack.frames && report.poseTrack.frames.length) {
+    return report.poseTrack;
+  }
+  const detection = db.poseDetections.find((item) => (
+    item.reportId === report.id ||
+    item.taskId === report.taskId ||
+    item.videoId === report.videoId
+  ));
+  const task = db.tasks.find((item) => item.id === report.taskId || item.videoId === report.videoId);
+  const poseFrames = detection && detection.frames && detection.frames.length
+    ? detection.frames
+    : (task && task.poseDetections ? task.poseDetections : []);
+  if (!poseFrames.length) return null;
+
+  report.poseTrack = buildPoseTrack(task && task.frames ? task.frames : [], poseFrames);
+  saveDb();
+  return report.poseTrack;
+}
+
 function pad(value) {
   return String(value).padStart(2, "0");
 }
@@ -550,5 +571,6 @@ module.exports = {
   getStudentProfile,
   createReportFromTask,
   createReportFromAnalysis,
+  ensureReportPoseTrack,
   saveDb
 };
