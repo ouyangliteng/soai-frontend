@@ -421,6 +421,7 @@ function buildPoseTrack(frames = [], poseFrames = []) {
         timeMs: Number(poseFrame.timestampMs || frameMeta.timestampMs || 0),
         confidence: Number(poseFrame.poseConfidence || 0),
         visibilityQuality: poseFrame.visibilityQuality || "low",
+        provider: poseFrame.provider || "",
         points
       };
     })
@@ -429,6 +430,7 @@ function buildPoseTrack(frames = [], poseFrames = []) {
   return {
     version: 1,
     coordinateSystem: "normalized",
+    quality: trackFrames.some((frame) => frame.provider && frame.provider !== "synthetic") ? "detected" : "estimated",
     pointLabels: {
       head: "头部",
       leftShoulder: "左肩",

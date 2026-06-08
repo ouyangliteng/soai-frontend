@@ -41,6 +41,7 @@ function getTrend(studentId, limit = 5) {
   cleanupExpiredVideos();
   const reports = db.reports
     .filter((report) => report.studentId === studentId)
+    .filter(uniqueReportByStableVideo())
     .slice(-Number(limit));
 
   const items = reports.map((report) => ({
@@ -86,6 +87,34 @@ function getTrend(studentId, limit = 5) {
     items,
     trendSummary: `最近 ${items.length} 次训练中，总评分${direction}，节奏控制保持较好，上身稳定性仍需持续观察。`
   };
+}
+
+function uniqueReportByStableVideo() {
+  const seen = new Set();
+  return (report, index, reports) => {
+    const signature = reportStableSignature(report);
+    if (!signature) return true;
+    let latestIndex = index;
+    for (let i = reports.length - 1; i >= 0; i -= 1) {
+      if (reportStableSignature(reports[i]) === signature) {
+        latestIndex = i;
+        break;
+      }
+    }
+    if (latestIndex !== index || seen.has(signature)) return false;
+    seen.add(signature);
+    return true;
+  };
+}
+
+function reportStableSignature(report) {
+  if (!report || !report.videoId) return "";
+  const sizeMb = Number(report.videoSizeMb || 0).toFixed(1);
+  const durationSec = Math.round(Number(report.videoDurationSec || 0));
+  if (Number(sizeMb) <= 0 || durationSec <= 0) {
+    return report.videoSignature || "";
+  }
+  return [report.studentId, sizeMb, durationSec].join("|");
 }
 
 async function completeTask(task) {

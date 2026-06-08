@@ -31,6 +31,11 @@ async function main() {
       caseConsent: false
     }, headers);
     assert.ok(firstVideo.videoId);
+    assert.ok(firstVideo.uploadUrl.includes("/api/lite/v1/mock-upload/"));
+    const uploadResult = await requestRaw(firstVideo.uploadUrl, "POST", Buffer.from("fake-video-bytes"), {
+      "Content-Type": "video/mp4"
+    });
+    assert.strictEqual(uploadResult.statusCode, 200);
 
     const firstTask = await request(baseUrl, "POST", "/api/lite/v1/analysis/tasks", {
       videoId: firstVideo.videoId
@@ -48,18 +53,16 @@ async function main() {
     assert.strictEqual(firstReport.report.poseTrack.frames[0].points.leftToe.derived, true);
 
     const repeatedVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
-      fileName: "repeat-training.mp4",
+      fileName: "training-from-album-different-name.mp4",
       sizeMb: 20,
       durationSec: 20,
       format: "mp4",
       analysisConsent: true,
       caseConsent: false
     }, headers);
-    const repeatedTask = await request(baseUrl, "POST", "/api/lite/v1/analysis/tasks", {
-      videoId: repeatedVideo.videoId
-    }, headers);
-    assert.strictEqual(repeatedTask.status, "completed");
-    assert.strictEqual(repeatedTask.reportId, firstTaskDone.reportId);
+    assert.strictEqual(repeatedVideo.reused, true);
+    assert.strictEqual(repeatedVideo.reportId, firstTaskDone.reportId);
+    assert.strictEqual(repeatedVideo.uploadMethod, "SKIP");
 
     const reportFeedback = await request(baseUrl, "POST", `/api/lite/v1/reports/${firstTaskDone.reportId}/feedback`, {
       role: "coach",
@@ -76,14 +79,25 @@ async function main() {
 
     const uniqueVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
       fileName: "training-unique.mp4",
-      sizeMb: 20,
-      durationSec: 20,
+      sizeMb: 21,
+      durationSec: 21,
       format: "mp4",
       analysisConsent: true,
       caseConsent: false
     }, headers);
     assert.ok(uniqueVideo.videoId);
-    assert.strictEqual(uniqueVideo.quota.remaining, 0);
+    assert.strictEqual(uniqueVideo.quota.remaining, 1);
+
+    const secondUniqueVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
+      fileName: "training-second-unique.mp4",
+      sizeMb: 22,
+      durationSec: 22,
+      format: "mp4",
+      analysisConsent: true,
+      caseConsent: false
+    }, headers);
+    assert.ok(secondUniqueVideo.videoId);
+    assert.strictEqual(secondUniqueVideo.quota.remaining, 0);
 
     const quotaAfter = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
     assert.strictEqual(quotaAfter.used, 3);
@@ -91,8 +105,8 @@ async function main() {
 
     const overLimit = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
       fileName: "training-over-limit.mp4",
-      sizeMb: 20,
-      durationSec: 20,
+      sizeMb: 23,
+      durationSec: 23,
       format: "mp4",
       analysisConsent: true,
       caseConsent: false
@@ -139,6 +153,33 @@ function request(baseUrl, method, path, body, headers = {}, options = {}) {
     });
     req.on("error", reject);
     if (payload) req.write(payload);
+    req.end();
+  });
+}
+
+function requestRaw(targetUrl, method, body, headers = {}) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(targetUrl);
+    const payload = Buffer.isBuffer(body) ? body : Buffer.from(body || "");
+    const req = http.request({
+      hostname: url.hostname,
+      port: url.port,
+      path: `${url.pathname}${url.search}`,
+      method,
+      headers: {
+        "Content-Length": payload.length,
+        ...headers
+      }
+    }, (res) => {
+      const chunks = [];
+      res.on("data", (chunk) => chunks.push(chunk));
+      res.on("end", () => {
+        const text = Buffer.concat(chunks).toString("utf8");
+        resolve({ statusCode: res.statusCode, body: text ? JSON.parse(text) : {} });
+      });
+    });
+    req.on("error", reject);
+    req.write(payload);
     req.end();
   });
 }

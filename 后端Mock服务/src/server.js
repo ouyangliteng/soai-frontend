@@ -82,7 +82,7 @@ function createServer() {
 
       const storageMatch = url.pathname.match(/^\/storage\/(.+)$/);
       if (req.method === "GET" && storageMatch) {
-        return sendStorageFile(res, storageMatch[1]);
+        return sendStorageFile(req, res, storageMatch[1]);
       }
 
       if (req.method === "GET" && url.pathname === "/api/student/profile") {
@@ -447,9 +447,18 @@ function createServer() {
 async function handleLiteRequest(req, res, url) {
   const path = url.pathname.replace(/^\/api\/lite\/v1/, "") || "/";
 
+  const mockUploadMatch = path.match(/^\/mock-upload\/([^/]+)$/);
+  if (req.method === "POST" && mockUploadMatch) {
+    const video = db.videos.find((item) => item.id === mockUploadMatch[1]);
+    if (!video) return sendError(res, 404, "VIDEO_NOT_FOUND", "未找到视频记录。");
+    await saveUploadedVideo(video, req);
+    saveDb();
+    return send(res, 200, { success: true, videoId: video.id, storageUrl: video.storageUrl });
+  }
+
   const storageMatch = path.match(/^\/storage\/(.+)$/);
   if (req.method === "GET" && storageMatch) {
-    return sendStorageFile(res, storageMatch[1]);
+    return sendStorageFile(req, res, storageMatch[1]);
   }
 
   if (req.method === "POST" && path === "/auth/wx-login") {
@@ -499,6 +508,28 @@ async function handleLiteRequest(req, res, url) {
   }
 
   if (req.method === "POST" && path === "/videos/upload-token") {
+    const payload = await readJson(req);
+    const validation = validateVideo(payload);
+    if (validation) return send(res, 400, validation);
+
+    const existingReport = findExistingReportForPayload(identity.studentId, payload);
+    if (existingReport) {
+      return send(res, 200, {
+        reused: true,
+        reportId: existingReport.id,
+        videoId: existingReport.videoId,
+        uploadUrl: "",
+        uploadMethod: "SKIP",
+        storageProvider: "reused",
+        storageKey: "",
+        storageUrl: existingReport.videoStorageUrl || existingReport.videoPath || "",
+        maxSizeMb: Number(process.env.SOAI_MAX_UPLOAD_MB || 150),
+        expiresInSec: 0,
+        quota: getDailyUploadQuota(identity.studentId),
+        message: "已识别为同一训练视频，直接复用原分析报告。"
+      });
+    }
+
     const quota = getDailyUploadQuota(identity.studentId);
     if (quota.remaining <= 0) {
       return send(res, 429, {
@@ -507,10 +538,6 @@ async function handleLiteRequest(req, res, url) {
         quota
       });
     }
-
-    const payload = await readJson(req);
-    const validation = validateVideo(payload);
-    if (validation) return send(res, 400, validation);
 
     const video = {
       id: `video_${Date.now()}`,
@@ -713,19 +740,42 @@ function shortHash(value) {
 }
 
 function buildVideoSignature(studentId, payload) {
-  const fileName = String(payload.fileName || payload.filename || "").trim().toLowerCase();
   const sizeMb = Number(payload.sizeMb || 0).toFixed(1);
   const durationSec = Math.round(Number(payload.durationSec || 0));
   const format = String(payload.format || "").trim().toLowerCase();
-  return shortHash([studentId, fileName, sizeMb, durationSec, format].join("|"));
+  return shortHash([studentId, sizeMb, durationSec, format].join("|"));
 }
 
 function findExistingReportForVideo(studentId, video) {
   const signature = video.videoSignature || buildVideoSignature(studentId, video);
   if (!signature) return null;
   return db.reports
-    .filter((report) => report.studentId === studentId && report.videoSignature === signature)
+    .filter((report) => report.studentId === studentId && (
+      report.videoSignature === signature ||
+      isSameStableVideo(report, video)
+    ))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] || null;
+}
+
+function findExistingReportForPayload(studentId, payload) {
+  const signature = buildVideoSignature(studentId, payload);
+  return db.reports
+    .filter((report) => report.studentId === studentId && (
+      report.videoSignature === signature ||
+      isSameStableVideo(report, payload)
+    ))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] || null;
+}
+
+function isSameStableVideo(report, payload) {
+  const reportSizeMb = Number(report.videoSizeMb || 0).toFixed(1);
+  const payloadSizeMb = Number(payload.sizeMb || 0).toFixed(1);
+  const reportDurationSec = Math.round(Number(report.videoDurationSec || 0));
+  const payloadDurationSec = Math.round(Number(payload.durationSec || 0));
+  return Number(reportSizeMb) > 0 &&
+    reportSizeMb === payloadSizeMb &&
+    reportDurationSec > 0 &&
+    reportDurationSec === payloadDurationSec;
 }
 
 function validateVideo(payload) {
@@ -791,18 +841,38 @@ function validateAdminAuth(req) {
   };
 }
 
-function sendStorageFile(res, storageKey) {
+function sendStorageFile(req, res, storageKey) {
   const filePath = getStorageFilePath(storageKey);
-  if (!filePath || !require("fs").existsSync(filePath)) {
+  const fs = require("fs");
+  if (!filePath || !fs.existsSync(filePath)) {
     return sendError(res, 404, "FILE_NOT_FOUND", "视频文件已过期或不存在。");
   }
   const ext = filePath.split(".").pop().toLowerCase();
   const contentType = ext === "mov" ? "video/quicktime" : ext === "jpg" || ext === "jpeg" ? "image/jpeg" : "video/mp4";
+  const stat = fs.statSync(filePath);
+  const range = req.headers.range;
+  if (range && contentType.startsWith("video/")) {
+    const match = range.match(/bytes=(\d*)-(\d*)/);
+    const start = match && match[1] ? Number(match[1]) : 0;
+    const end = match && match[2] ? Number(match[2]) : stat.size - 1;
+    const safeStart = Math.max(0, Math.min(start, stat.size - 1));
+    const safeEnd = Math.max(safeStart, Math.min(end, stat.size - 1));
+    res.writeHead(206, {
+      "Content-Type": contentType,
+      "Content-Length": safeEnd - safeStart + 1,
+      "Content-Range": `bytes ${safeStart}-${safeEnd}/${stat.size}`,
+      "Accept-Ranges": "bytes",
+      "Cache-Control": "private, max-age=3600"
+    });
+    return fs.createReadStream(filePath, { start: safeStart, end: safeEnd }).pipe(res);
+  }
   res.writeHead(200, {
     "Content-Type": contentType,
+    "Content-Length": stat.size,
+    "Accept-Ranges": "bytes",
     "Cache-Control": "private, max-age=3600"
   });
-  require("fs").createReadStream(filePath).pipe(res);
+  fs.createReadStream(filePath).pipe(res);
 }
 
 if (require.main === module) {

@@ -23,7 +23,7 @@ function createUploadTarget(video, requestMeta) {
     storageKey,
     storagePath,
     storageUrl: toStorageUrl(storageKey),
-    uploadUrl: `${getRequestBaseUrl(requestMeta)}/mock-upload/${video.id}`,
+    uploadUrl: `${getRequestBaseUrl(requestMeta)}${getLocalUploadPathPrefix(requestMeta)}/mock-upload/${video.id}`,
     uploadMethod: "POST",
     expiresInSec: 900
   };
@@ -99,6 +99,12 @@ function getRequestBaseUrl(requestMeta) {
   const proto = headers["x-forwarded-proto"] || "http";
   const host = headers["x-forwarded-host"] || headers.host || "localhost:8787";
   return `${proto}://${host}`;
+}
+
+function getLocalUploadPathPrefix(requestMeta) {
+  if (process.env.SOAI_LOCAL_UPLOAD_PATH_PREFIX) return process.env.SOAI_LOCAL_UPLOAD_PATH_PREFIX.replace(/\/$/, "");
+  const url = requestMeta && requestMeta.url ? String(requestMeta.url) : "";
+  return url.startsWith("/api/lite/v1/") ? "/api/lite/v1" : "";
 }
 
 function saveUploadedVideo(video, readable) {
