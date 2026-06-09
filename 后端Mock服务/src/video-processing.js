@@ -58,13 +58,14 @@ function extractWithFfmpeg(video, task, fps, targetFrameCount, durationSec) {
     .map((_, index) => {
       const frameIndex = index + 1;
       const imagePath = buildFramePath(task.id, frameIndex);
+      const dimensions = getMediaDimensions(imagePath, 960, 540);
       return {
         frameIndex,
         timestampMs: Math.round((index / fps) * 1000),
         imagePath,
         imageUrl: toStorageUrl(`frames/${task.id}_frame_${String(frameIndex).padStart(4, "0")}.jpg`),
-        width: 960,
-        height: 540,
+        width: dimensions.width,
+        height: dimensions.height,
         extractedBy: "ffmpeg"
       };
     })
@@ -86,6 +87,31 @@ function buildSyntheticFrames(task, frameCount, durationSec) {
 function hasFfmpeg() {
   const result = spawnSync("ffmpeg", ["-version"], { encoding: "utf8" });
   return result.status === 0;
+}
+
+function getMediaDimensions(filePath, fallbackWidth, fallbackHeight) {
+  const result = spawnSync("ffprobe", [
+    "-v",
+    "error",
+    "-select_streams",
+    "v:0",
+    "-show_entries",
+    "stream=width,height",
+    "-of",
+    "csv=s=x:p=0",
+    filePath
+  ], { encoding: "utf8" });
+
+  if (result.status !== 0) {
+    return { width: fallbackWidth, height: fallbackHeight };
+  }
+
+  const [width, height] = String(result.stdout || "").trim().split("x").map(Number);
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    return { width: fallbackWidth, height: fallbackHeight };
+  }
+
+  return { width, height };
 }
 
 function clamp(value, min, max) {
