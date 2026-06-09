@@ -58,6 +58,17 @@ async function main() {
     assert.strictEqual(tooLongVideo.statusCode, 400);
     assert.strictEqual(tooLongVideo.body.code, "VIDEO_TOO_LONG");
 
+    const shortVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
+      fileName: "short-training.mp4",
+      sizeMb: 6.5,
+      durationSec: 7,
+      format: "mp4",
+      analysisConsent: true,
+      caseConsent: false
+    }, headers);
+    assert.ok(shortVideo.videoId);
+    assert.strictEqual(shortVideo.quota.remaining, 2);
+
     const firstVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
       fileName: "repeat-training.mp4",
       sizeMb: 20,
@@ -122,18 +133,7 @@ async function main() {
       caseConsent: false
     }, headers);
     assert.ok(uniqueVideo.videoId);
-    assert.strictEqual(uniqueVideo.quota.remaining, 1);
-
-    const secondUniqueVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
-      fileName: "training-second-unique.mp4",
-      sizeMb: 22,
-      durationSec: 14,
-      format: "mp4",
-      analysisConsent: true,
-      caseConsent: false
-    }, headers);
-    assert.ok(secondUniqueVideo.videoId);
-    assert.strictEqual(secondUniqueVideo.quota.remaining, 0);
+    assert.strictEqual(uniqueVideo.quota.remaining, 0);
 
     const quotaAfter = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
     assert.strictEqual(quotaAfter.used, 3);

@@ -878,9 +878,6 @@ function validateVideo(payload) {
   if (Number(payload.sizeMb) > 150) {
     return { code: "VIDEO_TOO_LARGE", message: "视频文件过大，请压缩或选择 150 MB 以内片段。" };
   }
-  if (Number(payload.durationSec) < 10) {
-    return { code: "VIDEO_TOO_SHORT", message: "视频片段过短，请上传至少 10 秒训练视频。" };
-  }
   if (Number(payload.durationSec) > maxDurationSec) {
     return { code: "VIDEO_TOO_LONG", message: `真实姿态识别测试请上传 ${maxDurationSec} 秒以内关键训练片段。` };
   }
