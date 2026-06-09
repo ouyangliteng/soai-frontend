@@ -7,6 +7,7 @@ process.env.SOAI_REQUIRE_REAL_POSE = "true";
 process.env.SOAI_MAX_VIDEO_DURATION_SEC = "15";
 
 async function main() {
+  process.env.SOAI_LITE_INVITE_CODES = "SOAI2026";
   const server = createServer();
   await new Promise((resolve) => server.listen(0, resolve));
   const { port } = server.address();
@@ -18,6 +19,10 @@ async function main() {
       anonymousId: "real-pose-required"
     });
     const headers = { Authorization: `Bearer ${login.token}` };
+    const invite = await request(baseUrl, "POST", "/api/lite/v1/invite/verify", {
+      inviteCode: "SOAI2026"
+    }, headers);
+    assert.strictEqual(invite.success, true);
 
     const video = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
       fileName: "real-pose-required.mp4",

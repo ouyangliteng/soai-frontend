@@ -503,12 +503,34 @@ async function handleLiteRequest(req, res, url) {
     return send(res, 200, { success: true, profileId: updated.id, profile: updated });
   }
 
+  if (req.method === "POST" && path === "/invite/verify") {
+    const payload = await readJson(req);
+    const inviteResult = verifyLiteInviteCode(profile, payload.inviteCode || payload.code);
+    if (!inviteResult.ok) {
+      return send(res, inviteResult.status, {
+        code: inviteResult.code,
+        message: inviteResult.message,
+        inviteAccess: getInviteAccess(profile)
+      });
+    }
+    saveDb();
+    return send(res, 200, {
+      success: true,
+      profile,
+      inviteAccess: getInviteAccess(profile),
+      message: "内测邀请码已通过，可以上传真实姿态识别视频。"
+    });
+  }
+
   if (req.method === "GET" && path === "/upload/quota") {
     return send(res, 200, getDailyUploadQuota(identity.studentId));
   }
 
   if (req.method === "POST" && path === "/videos/upload-token") {
     const payload = await readJson(req);
+    const inviteError = validateLiteInviteAccess(profile);
+    if (inviteError) return send(res, 403, inviteError);
+
     const validation = validateVideo(payload);
     if (validation) return send(res, 400, validation);
 
@@ -725,6 +747,73 @@ function getDailyUploadQuota(studentId) {
     remaining: Math.max(0, limit - used),
     date: dateKey
   };
+}
+
+function getLiteInviteCodes() {
+  const configured = process.env.SOAI_LITE_INVITE_CODES || "SOAI2026";
+  return configured
+    .split(",")
+    .map((code) => normalizeInviteCode(code))
+    .filter(Boolean);
+}
+
+function normalizeInviteCode(value) {
+  return String(value || "").trim().replace(/\s+/g, "").toUpperCase();
+}
+
+function getInviteAccess(profile) {
+  const verified = Boolean(profile.inviteVerifiedAt);
+  return {
+    required: getLiteInviteCodes().length > 0,
+    verified,
+    verifiedAt: profile.inviteVerifiedAt || "",
+    maxUsers: Number(process.env.SOAI_LITE_INVITE_MAX_USERS || 20),
+    acceptedUsers: countInviteAcceptedUsers()
+  };
+}
+
+function countInviteAcceptedUsers() {
+  return Object.values(db.profiles || {}).filter((item) => item && item.inviteVerifiedAt).length;
+}
+
+function verifyLiteInviteCode(profile, rawCode) {
+  const codes = getLiteInviteCodes();
+  if (!codes.length) {
+    profile.inviteVerifiedAt = profile.inviteVerifiedAt || nowIso();
+    profile.inviteStatus = "verified";
+    profile.updatedAt = nowIso();
+    return { ok: true };
+  }
+  const inviteCode = normalizeInviteCode(rawCode);
+  if (!inviteCode) {
+    return { ok: false, status: 400, code: "INVITE_CODE_REQUIRED", message: "请输入内测邀请码后再上传测试视频。" };
+  }
+  if (!codes.includes(inviteCode)) {
+    return { ok: false, status: 403, code: "INVITE_CODE_INVALID", message: "邀请码不正确，请向 SOAI 内测负责人确认。" };
+  }
+  const maxUsers = Number(process.env.SOAI_LITE_INVITE_MAX_USERS || 20);
+  if (!profile.inviteVerifiedAt && countInviteAcceptedUsers() >= maxUsers) {
+    return { ok: false, status: 403, code: "INVITE_TESTER_LIMIT_REACHED", message: `本轮内测名额已达到 ${maxUsers} 人，请联系 SOAI 开放下一批名额。` };
+  }
+  profile.inviteVerifiedAt = profile.inviteVerifiedAt || nowIso();
+  profile.inviteStatus = "verified";
+  profile.inviteCodeHash = shortHash(inviteCode);
+  profile.updatedAt = nowIso();
+  return { ok: true };
+}
+
+function validateLiteInviteAccess(profile) {
+  const access = getInviteAccess(profile);
+  if (!access.required || access.verified) return null;
+  return {
+    code: "INVITE_REQUIRED",
+    message: "请先在首页输入内测邀请码，通过后再上传测试视频。",
+    inviteAccess: access
+  };
+}
+
+function nowIso() {
+  return new Date().toISOString();
 }
 
 function chinaDateKey(date) {

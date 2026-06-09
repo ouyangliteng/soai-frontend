@@ -4,6 +4,8 @@ const { createServer } = require("../src/server");
 
 async function main() {
   process.env.SOAI_LITE_DAILY_UPLOAD_LIMIT = "3";
+  process.env.SOAI_LITE_INVITE_CODES = "SOAI2026";
+  process.env.SOAI_LITE_INVITE_MAX_USERS = "20";
   const server = createServer();
   await new Promise((resolve) => server.listen(0, resolve));
   const { port } = server.address();
@@ -21,6 +23,29 @@ async function main() {
     const initialQuota = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
     assert.strictEqual(initialQuota.limit, 3);
     assert.strictEqual(initialQuota.remaining, 3);
+
+    const missingInvite = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
+      fileName: "blocked-before-invite.mp4",
+      sizeMb: 20,
+      durationSec: 12,
+      format: "mp4",
+      analysisConsent: true,
+      caseConsent: false
+    }, headers, { allowError: true });
+    assert.strictEqual(missingInvite.statusCode, 403);
+    assert.strictEqual(missingInvite.body.code, "INVITE_REQUIRED");
+
+    const invalidInvite = await request(baseUrl, "POST", "/api/lite/v1/invite/verify", {
+      inviteCode: "WRONG"
+    }, headers, { allowError: true });
+    assert.strictEqual(invalidInvite.statusCode, 403);
+    assert.strictEqual(invalidInvite.body.code, "INVITE_CODE_INVALID");
+
+    const invite = await request(baseUrl, "POST", "/api/lite/v1/invite/verify", {
+      inviteCode: "soai2026"
+    }, headers);
+    assert.strictEqual(invite.success, true);
+    assert.strictEqual(invite.inviteAccess.verified, true);
 
     const tooLongVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
       fileName: "too-long-training.mp4",
