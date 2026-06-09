@@ -1,12 +1,18 @@
 const assert = require("assert");
+const fs = require("fs");
 const http = require("http");
+const os = require("os");
+const path = require("path");
+const { spawnSync } = require("child_process");
 
 process.env.SOAI_POSE_PROVIDER = "http";
 process.env.SOAI_POSE_MODEL_PROVIDER = "yolo-pose";
 process.env.SOAI_POSE_SERVICE_TIMEOUT_MS = "500";
 process.env.SOAI_REQUIRE_REAL_POSE = "true";
+process.env.SOAI_STORAGE_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), "soai-yolo-provider-"));
 
 const { createServer } = require("../src/server");
+const { db } = require("../src/data");
 
 async function main() {
   const fakePoseService = http.createServer(async (req, res) => {
@@ -60,6 +66,13 @@ async function main() {
       caseConsent: false
     });
 
+    const uploadRes = await httpRequest(uploadToken.uploadUrl, {
+      method: "POST",
+      headers: { "Content-Type": "video/mp4" },
+      body: buildTestVideoBuffer()
+    });
+    assert.strictEqual(uploadRes.status, 200, `upload expected 200, got ${uploadRes.status}: ${uploadRes.body}`);
+
     await request(baseUrl, "POST", `/api/videos/${uploadToken.videoId}/upload-status`, {
       uploadStatus: "uploaded",
       uploadProgress: 100,
@@ -72,7 +85,8 @@ async function main() {
     });
 
     const task = await request(baseUrl, "GET", `/api/analysis/tasks/${taskCreated.taskId}`);
-    assert.strictEqual(task.status, "completed");
+    const taskRecord = db.tasks.find((item) => item.id === taskCreated.taskId);
+    assert.strictEqual(task.status, "completed", JSON.stringify({ task, logs: taskRecord && taskRecord.logs }));
     assert.ok(task.reportId);
 
     const reportRes = await request(baseUrl, "GET", `/api/reports/${task.reportId}`);
@@ -118,6 +132,24 @@ function point(x, y, confidence) {
     y: Number(y.toFixed(2)),
     confidence
   };
+}
+
+function buildTestVideoBuffer() {
+  const filePath = path.join(process.env.SOAI_STORAGE_ROOT, "sample.mp4");
+  const result = spawnSync("ffmpeg", [
+    "-y",
+    "-f",
+    "lavfi",
+    "-i",
+    "color=c=black:s=320x180:d=2",
+    "-t",
+    "2",
+    "-pix_fmt",
+    "yuv420p",
+    filePath
+  ], { encoding: "utf8" });
+  assert.strictEqual(result.status, 0, result.stderr || "failed to build test video");
+  return fs.readFileSync(filePath);
 }
 
 function readJson(req) {

@@ -9,10 +9,19 @@ function extractFrames(video, task) {
   const durationSec = clamp(Number(video.durationSec || 10), 10, maxDurationSec);
   const fps = clamp(DEFAULT_FPS, 1, 2);
   const targetFrameCount = Math.max(1, Math.round(durationSec * fps));
+  const requireRealPose = process.env.SOAI_REQUIRE_REAL_POSE === "true";
 
   if (video.storagePath && fs.existsSync(video.storagePath) && hasFfmpeg()) {
     const frames = extractWithFfmpeg(video, task, fps, targetFrameCount, durationSec);
     if (frames.length) return frames;
+    if (requireRealPose) {
+      throw new Error("真实姿态识别抽帧失败，请确认上传视频可播放且服务器 ffmpeg 正常。");
+    }
+  } else if (requireRealPose) {
+    if (!video.storagePath || !fs.existsSync(video.storagePath)) {
+      throw new Error("真实姿态识别未找到上传视频文件，请重新上传。");
+    }
+    throw new Error("真实姿态识别需要服务器安装 ffmpeg 才能抽取视频帧。");
   }
 
   return buildSyntheticFrames(task, targetFrameCount, durationSec);
@@ -28,6 +37,10 @@ function extractWithFfmpeg(video, task, fps, targetFrameCount, durationSec) {
     `fps=${fps},scale='min(960,iw)':-2`,
     "-frames:v",
     String(targetFrameCount),
+    "-q:v",
+    "3",
+    "-pix_fmt",
+    "yuvj420p",
     outputPattern
   ], { encoding: "utf8" });
 

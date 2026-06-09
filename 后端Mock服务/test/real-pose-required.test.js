@@ -39,7 +39,7 @@ async function main() {
     const task = await request(baseUrl, "GET", `/api/lite/v1/analysis/tasks/${taskCreated.taskId}`, null, headers);
     assert.strictEqual(task.status, "failed");
     assert.strictEqual(task.errorCode, "ANALYSIS_PIPELINE_FAILED");
-    assert.ok(task.errorMessage.includes("真实姿态模型"));
+    assert.ok(task.errorMessage.includes("真实姿态识别"));
 
     console.log("real pose required tests passed");
   } finally {
