@@ -18,8 +18,23 @@ async function main() {
     });
     assert.ok(login.token);
     assert.ok(login.profile.id.startsWith("student_lite_"));
+    assert.strictEqual(login.profile.name, "内测会员");
 
     const headers = { Authorization: `Bearer ${login.token}` };
+    const savedProfile = await request(baseUrl, "POST", "/api/lite/v1/student/profile", {
+      name: "测试骑手A",
+      currentLevel: "初级进阶",
+      clubName: "SOAI 内测俱乐部",
+      coachName: "内测教练"
+    }, headers);
+    assert.strictEqual(savedProfile.profile.name, "测试骑手A");
+
+    const relogin = await request(baseUrl, "POST", "/api/lite/v1/auth/wx-login", {
+      code: "wx-test-code",
+      anonymousId: "lite-user-a"
+    });
+    assert.strictEqual(relogin.profile.name, "测试骑手A");
+
     const initialQuota = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
     assert.strictEqual(initialQuota.limit, 3);
     assert.strictEqual(initialQuota.remaining, 3);

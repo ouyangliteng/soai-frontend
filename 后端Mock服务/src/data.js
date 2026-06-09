@@ -192,7 +192,7 @@ function ensureStudentProfile(studentId, patch = {}) {
       ...profile,
       id: studentId,
       userId: patch.userId || `wx_${studentId}`,
-      name: patch.name || "内测学员",
+      name: patch.name || "内测会员",
       avatarUrl: patch.avatarUrl || "",
       phone: patch.phone || "",
       coachId: patch.coachId || "",
@@ -203,6 +203,9 @@ function ensureStudentProfile(studentId, patch = {}) {
       updatedAt: now()
     };
   } else {
+    if (!patch.name && db.profiles[studentId].name === "内测学员") {
+      db.profiles[studentId].name = "内测会员";
+    }
     Object.assign(db.profiles[studentId], patch, {
       id: studentId,
       updatedAt: now()

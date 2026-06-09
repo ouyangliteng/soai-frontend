@@ -465,11 +465,12 @@ async function handleLiteRequest(req, res, url) {
     const payload = await readJson(req);
     const anonymousId = sanitizeIdentity(payload.anonymousId || payload.code || `${Date.now()}`);
     const studentId = `student_lite_${shortHash(anonymousId)}`;
-    const profile = ensureStudentProfile(studentId, {
+    const profilePatch = {
       userId: `lite_${anonymousId}`,
-      name: payload.name || "内测学员",
-      avatarUrl: payload.avatarUrl || ""
-    });
+    };
+    if (payload.name || payload.nickName) profilePatch.name = payload.name || payload.nickName;
+    if (payload.avatarUrl) profilePatch.avatarUrl = payload.avatarUrl;
+    const profile = ensureStudentProfile(studentId, profilePatch);
     return send(res, 200, {
       token: `lite_${studentId}`,
       profile,
