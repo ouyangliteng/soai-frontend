@@ -207,9 +207,18 @@ class YoloPoseProvider:
                 continue
             xy = keypoints.xy.cpu().numpy()
             conf = keypoints.conf.cpu().numpy() if keypoints.conf is not None else None
+            boxes = getattr(result, "boxes", None)
+            box_xyxy = boxes.xyxy.cpu().numpy() if boxes is not None and getattr(boxes, "xyxy", None) is not None else None
             for person_index, person_xy in enumerate(xy):
                 person_conf = conf[person_index] if conf is not None else [0.5] * len(person_xy)
-                candidates.append((person_xy, person_conf))
+                bbox = box_xyxy[person_index] if box_xyxy is not None and person_index < len(box_xyxy) else None
+                candidates.append({
+                    "xy": person_xy,
+                    "confidence": person_conf,
+                    "bbox": bbox,
+                    "frameWidth": frame.get("width"),
+                    "frameHeight": frame.get("height"),
+                })
         keypoints = best_coco_pose_to_soai(candidates)
         return build_pose_frame(frame, keypoints, self.name, model_display_name(self.model_ref))
 
@@ -278,17 +287,83 @@ def coco_points_to_soai(xy: Any, confidence: Any) -> Dict[str, Dict[str, float]]
     return keypoints
 
 
+def unpack_pose_candidate(candidate: Any) -> Dict[str, Any]:
+    if isinstance(candidate, dict):
+        xy = candidate.get("xy")
+        confidence = candidate.get("confidence")
+        return {
+            "xy": xy if xy is not None else [],
+            "confidence": confidence if confidence is not None else [],
+            "bbox": candidate.get("bbox"),
+            "frameWidth": candidate.get("frameWidth"),
+            "frameHeight": candidate.get("frameHeight"),
+        }
+    xy, confidence = candidate
+    return {"xy": xy, "confidence": confidence, "bbox": None, "frameWidth": None, "frameHeight": None}
+
+
+def pose_candidate_score(candidate: Dict[str, Any]) -> float:
+    xy = candidate["xy"]
+    confidence = candidate["confidence"]
+    if len(xy) < len(COCO_ORDER):
+        return -1.0
+
+    soai = coco_points_to_soai(xy, confidence)
+    required = [
+        "nose",
+        "leftShoulder",
+        "rightShoulder",
+        "leftHip",
+        "rightHip",
+        "leftKnee",
+        "rightKnee",
+        "leftAnkle",
+        "rightAnkle",
+    ]
+    visible = [soai[name] for name in required if soai[name]["confidence"] >= 0.25]
+    torso = [soai[name] for name in ["leftShoulder", "rightShoulder", "leftHip", "rightHip"]]
+    leg_count = len([soai[name] for name in ["leftKnee", "rightKnee", "leftAnkle", "rightAnkle"] if soai[name]["confidence"] >= 0.25])
+    head_shoulder_count = len([soai[name] for name in ["nose", "leftShoulder", "rightShoulder"] if soai[name]["confidence"] >= 0.25])
+
+    confidence_score = average([item["confidence"] for item in visible])
+    completeness_score = len(visible) / len(required)
+    torso_score = len([item for item in torso if item["confidence"] >= 0.25]) / len(torso)
+    leg_score = leg_count / 4
+    head_shoulder_score = head_shoulder_count / 3
+
+    bbox_score = 0.0
+    bbox = candidate.get("bbox")
+    frame_width = float(candidate.get("frameWidth") or 0)
+    frame_height = float(candidate.get("frameHeight") or 0)
+    if bbox is not None and len(bbox) >= 4 and frame_width > 0 and frame_height > 0:
+        x1, y1, x2, y2 = [float(value) for value in bbox[:4]]
+        width_ratio = max(0.0, min(1.0, (x2 - x1) / frame_width))
+        height_ratio = max(0.0, min(1.0, (y2 - y1) / frame_height))
+        area_ratio = width_ratio * height_ratio
+        bbox_score = min(1.0, area_ratio / 0.12)
+
+    return (
+        confidence_score * 0.45
+        + completeness_score * 0.22
+        + torso_score * 0.14
+        + leg_score * 0.10
+        + head_shoulder_score * 0.06
+        + bbox_score * 0.03
+    )
+
+
 def best_coco_pose_to_soai(candidates: Iterable[Any]) -> Dict[str, Dict[str, float]]:
-    best_keypoints = None
-    best_confidence = -1.0
-    for xy, confidence in candidates:
-        score = average([float(value) for value in confidence])
-        if score > best_confidence:
-            best_confidence = score
-            best_keypoints = (xy, confidence)
-    if best_keypoints is None:
+    best_candidate = None
+    best_score = -1.0
+    for raw_candidate in candidates:
+        candidate = unpack_pose_candidate(raw_candidate)
+        score = pose_candidate_score(candidate)
+        if score > best_score:
+            best_score = score
+            best_candidate = candidate
+    if best_candidate is None:
         return empty_keypoints()
-    return coco_points_to_soai(best_keypoints[0], best_keypoints[1])
+    return coco_points_to_soai(best_candidate["xy"], best_candidate["confidence"])
 
 
 def build_pose_frame(

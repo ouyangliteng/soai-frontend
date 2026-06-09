@@ -422,6 +422,8 @@ function buildPoseTrack(frames = [], poseFrames = []) {
       return {
         frameIndex: Number(poseFrame.frameIndex || index + 1),
         timeMs: Number(poseFrame.timestampMs || frameMeta.timestampMs || 0),
+        sourceWidth: width,
+        sourceHeight: height,
         confidence: Number(poseFrame.poseConfidence || 0),
         visibilityQuality: poseFrame.visibilityQuality || "low",
         provider: poseFrame.provider || "",

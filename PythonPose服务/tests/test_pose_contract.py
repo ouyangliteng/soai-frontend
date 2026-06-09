@@ -40,6 +40,22 @@ class PoseContractTest(unittest.TestCase):
         self.assertEqual(keypoints["leftHip"]["x"], 20)
         self.assertEqual(keypoints["leftHip"]["confidence"], 0.9)
 
+    def test_best_coco_pose_prefers_complete_rider_candidate(self):
+        partial_xy = [[10, 10] for _ in COCO_ORDER]
+        complete_xy = [[30, 30] for _ in COCO_ORDER]
+        partial_confidence = [0.0 for _ in COCO_ORDER]
+        complete_confidence = [0.58 for _ in COCO_ORDER]
+        for index in [0, 5, 6]:
+            partial_confidence[index] = 0.95
+
+        keypoints = best_coco_pose_to_soai([
+            {"xy": partial_xy, "confidence": partial_confidence, "frameWidth": 720, "frameHeight": 1280},
+            {"xy": complete_xy, "confidence": complete_confidence, "frameWidth": 720, "frameHeight": 1280},
+        ])
+
+        self.assertEqual(keypoints["leftHip"]["x"], 30)
+        self.assertEqual(keypoints["leftKnee"]["confidence"], 0.58)
+
     def test_empty_candidates_return_zero_confidence_keypoints(self):
         keypoints = best_coco_pose_to_soai([])
         self.assertEqual(sorted(keypoints.keys()), sorted(KEYPOINT_NAMES))
