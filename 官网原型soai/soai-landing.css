@@ -337,3 +337,88 @@ body {
 }
 
 .tooltip-close:hover { color: var(--text); }
+
+/* ── S03：进步对比 ── */
+.s03 {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 80px clamp(24px, 6vw, 100px);
+}
+
+.s03-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.s03-eyebrow {
+  font-size: 10px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--purple);
+  margin-bottom: 12px;
+}
+
+.s03-title {
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 900;
+  color: var(--text);
+  margin-bottom: 32px;
+}
+
+#progress-chart {
+  width: 100%;
+  overflow: visible;
+}
+
+/* 折线图路径初始（JS 控制 dashoffset） */
+#line-before,
+#line-after {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+}
+
+/* 统计卡片 */
+.s03-right {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.stat-card {
+  padding: 24px 28px;
+  border: 1px solid rgba(168,85,247,0.25);
+  border-radius: 12px;
+  background: rgba(168,85,247,0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(to bottom, var(--blue), var(--purple));
+}
+
+.stat-num {
+  font-size: clamp(36px, 4vw, 52px);
+  font-weight: 900;
+  background: linear-gradient(90deg, var(--blue), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--text-dim);
+}

@@ -258,3 +258,63 @@
     }
   });
 })();
+
+/* ── S03 折线图 + 数字计数 ── */
+(function initS03() {
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // 折线图路径长度初始化
+  const lineBefore = document.getElementById('line-before');
+  const lineAfter  = document.getElementById('line-after');
+
+  function initLineDash(el) {
+    const len = el.getTotalLength();
+    el.style.strokeDasharray  = len;
+    el.style.strokeDashoffset = reduced ? '0' : len;
+  }
+
+  initLineDash(lineBefore);
+  initLineDash(lineAfter);
+
+  if (reduced) {
+    document.querySelectorAll('.stat-num').forEach(el => {
+      el.textContent = el.dataset.target + el.dataset.suffix;
+    });
+    return;
+  }
+
+  // 数字滚动计数
+  function countUp(el) {
+    const target = parseInt(el.dataset.target, 10);
+    const suffix = el.dataset.suffix;
+    const duration = 1500;
+    const start = performance.now();
+
+    function step(now) {
+      const elapsed = Math.min(now - start, duration);
+      const eased   = 1 - Math.pow(1 - elapsed / duration, 3); // easeOutCubic
+      const value   = Math.round(eased * target);
+      el.textContent = value + suffix;
+      if (elapsed < duration) requestAnimationFrame(step);
+    }
+
+    requestAnimationFrame(step);
+  }
+
+  // ScrollTrigger：进入视口触发动画（once: true）
+  ScrollTrigger.create({
+    trigger: '#s03',
+    start: 'top 70%',
+    once: true,
+    onEnter() {
+      // 折线图生长
+      gsap.to(lineBefore, { strokeDashoffset: 0, duration: 1.2, ease: 'power2.out' });
+      gsap.to(lineAfter,  { strokeDashoffset: 0, duration: 1.8, ease: 'power2.out', delay: 0.3 });
+
+      // 数字计数
+      document.querySelectorAll('.stat-num').forEach((el, i) => {
+        setTimeout(() => countUp(el), i * 200);
+      });
+    },
+  });
+})();
