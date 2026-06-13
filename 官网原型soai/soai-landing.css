@@ -1,0 +1,53 @@
+/* ── CSS 变量 ── */
+:root {
+  --bg:       #06000f;
+  --blue:     #00c8ff;
+  --purple:   #a855f7;
+  --mid:      #6496ff;
+  --green:    #00ff88;
+  --red:      #ff6b6b;
+  --text:     rgba(255, 255, 255, 0.85);
+  --text-dim: rgba(255, 255, 255, 0.55);
+  --data:     rgba(255, 255, 255, 0.35);
+  --grid-bg:
+    linear-gradient(rgba(0,200,255,0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,200,255,0.055) 1px, transparent 1px);
+}
+
+/* ── Reset & 全局 ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  overflow-x: hidden;
+}
+
+/* 粒子 Canvas：全屏固定，不遮挡交互 */
+#particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.7;
+}
+
+/* 通用章节容器 */
+.section {
+  position: relative;
+  z-index: 1;
+  background-image: var(--grid-bg);
+  background-size: 28px 28px;
+}
+
+/* ── 无障碍：减少动效 ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
