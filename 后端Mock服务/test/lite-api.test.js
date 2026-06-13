@@ -82,7 +82,7 @@ async function main() {
       caseConsent: false
     }, headers);
     assert.ok(shortVideo.videoId);
-    assert.strictEqual(shortVideo.quota.remaining, 2);
+    assert.strictEqual(shortVideo.quota.remaining, 3);
 
     const firstVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
       fileName: "repeat-training.mp4",
@@ -98,6 +98,10 @@ async function main() {
       "Content-Type": "video/mp4"
     });
     assert.strictEqual(uploadResult.statusCode, 200);
+
+    const quotaAfterUpload = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
+    assert.strictEqual(quotaAfterUpload.used, 1);
+    assert.strictEqual(quotaAfterUpload.remaining, 2);
 
     const firstTask = await request(baseUrl, "POST", "/api/lite/v1/analysis/tasks", {
       videoId: firstVideo.videoId
@@ -148,11 +152,33 @@ async function main() {
       caseConsent: false
     }, headers);
     assert.ok(uniqueVideo.videoId);
-    assert.strictEqual(uniqueVideo.quota.remaining, 0);
+    assert.strictEqual(uniqueVideo.quota.remaining, 2);
+    const uniqueUploadResult = await requestRaw(uniqueVideo.uploadUrl, "POST", Buffer.from("unique-fake-video-bytes"), {
+      "Content-Type": "video/mp4"
+    });
+    assert.strictEqual(uniqueUploadResult.statusCode, 200);
 
     const quotaAfter = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
-    assert.strictEqual(quotaAfter.used, 3);
-    assert.strictEqual(quotaAfter.remaining, 0);
+    assert.strictEqual(quotaAfter.used, 2);
+    assert.strictEqual(quotaAfter.remaining, 1);
+
+    const thirdVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
+      fileName: "training-third.mp4",
+      sizeMb: 22,
+      durationSec: 14,
+      format: "mp4",
+      analysisConsent: true,
+      caseConsent: false
+    }, headers);
+    assert.ok(thirdVideo.videoId);
+    const thirdUploadResult = await requestRaw(thirdVideo.uploadUrl, "POST", Buffer.from("third-fake-video-bytes"), {
+      "Content-Type": "video/mp4"
+    });
+    assert.strictEqual(thirdUploadResult.statusCode, 200);
+
+    const quotaAfterThird = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
+    assert.strictEqual(quotaAfterThird.used, 3);
+    assert.strictEqual(quotaAfterThird.remaining, 0);
 
     const overLimit = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
       fileName: "training-over-limit.mp4",

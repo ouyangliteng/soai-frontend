@@ -740,6 +740,7 @@ function getDailyUploadQuota(studentId) {
   const dateKey = chinaDateKey(new Date());
   const used = db.videos.filter((video) => (
     video.studentId === studentId &&
+    video.uploadStatus === "uploaded" &&
     chinaDateKey(new Date(video.createdAt)) === dateKey
   )).length;
   return {
