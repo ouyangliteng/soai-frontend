@@ -444,3 +444,95 @@ body {
   font-size: 13px;
   color: var(--text-dim);
 }
+
+/* ── S04：CTA 收尾 ── */
+.s04 {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.s04-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(168,85,247,0.18) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.s04-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 640px;
+  padding: 40px 24px;
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+.s04-eyebrow {
+  font-size: 10px;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--purple);
+  margin-bottom: 16px;
+}
+
+.s04-title {
+  font-size: clamp(40px, 6vw, 76px);
+  font-weight: 900;
+  color: var(--text);
+  margin-bottom: 16px;
+  line-height: 1.05;
+}
+
+.s04-sub {
+  font-size: 16px;
+  color: var(--text-dim);
+  margin-bottom: 40px;
+}
+
+.s04-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 14px 32px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.btn--primary {
+  background: linear-gradient(90deg, var(--blue), var(--purple));
+  color: #fff;
+  border: none;
+}
+
+.btn--primary:hover {
+  filter: brightness(1.15);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(168,85,247,0.35);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.btn--ghost:hover {
+  border-color: rgba(255,255,255,0.5);
+  color: var(--text);
+}

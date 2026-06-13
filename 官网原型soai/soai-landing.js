@@ -333,3 +333,27 @@
     },
   });
 })();
+
+/* ── S04 进场动画 ── */
+(function initS04() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const content = document.querySelector('.s04-content');
+    content.style.opacity = '1';
+    content.style.transform = 'none';
+    return;
+  }
+
+  ScrollTrigger.create({
+    trigger: '#s04',
+    start: 'top 65%',
+    once: true,
+    onEnter() {
+      gsap.to('.s04-content', {
+        opacity: 1,
+        y: 0,
+        duration: 0.8,
+        ease: 'power3.out',
+      });
+    },
+  });
+})();
