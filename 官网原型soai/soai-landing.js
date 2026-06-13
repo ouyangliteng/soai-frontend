@@ -176,3 +176,84 @@
     },
   });
 })();
+
+/* ── S02 节点悬停 Tooltip ── */
+(function initTooltip() {
+  const tooltip = document.getElementById('tooltip');
+  const nameEl  = tooltip.querySelector('.tooltip-name');
+  const valEl   = tooltip.querySelector('.tooltip-val');
+  const tipEl   = tooltip.querySelector('.tooltip-tip');
+  const closeBtn = tooltip.querySelector('.tooltip-close');
+
+  let pinned = false;
+  let activeJoint = null;
+
+  function showTooltip(joint, x, y) {
+    nameEl.textContent = joint.dataset.name;
+    valEl.textContent  = joint.dataset.val;
+    tipEl.textContent  = joint.dataset.tip;
+    tooltip.classList.add('visible');
+    positionTooltip(x, y);
+  }
+
+  function positionTooltip(x, y) {
+    const tw = tooltip.offsetWidth;
+    const th = tooltip.offsetHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let left = x + 16;
+    let top  = y - th / 2;
+    if (left + tw > vw - 16) left = x - tw - 16;
+    if (top < 8) top = 8;
+    if (top + th > vh - 8) top = vh - th - 8;
+    tooltip.style.left = left + 'px';
+    tooltip.style.top  = top  + 'px';
+  }
+
+  function hideTooltip() {
+    if (pinned) return;
+    tooltip.classList.remove('visible');
+    if (activeJoint) activeJoint.classList.remove('active');
+    activeJoint = null;
+  }
+
+  document.querySelectorAll('.joint').forEach(joint => {
+    joint.addEventListener('mouseenter', e => {
+      if (pinned) return;
+      activeJoint = joint;
+      joint.classList.add('active');
+      showTooltip(joint, e.clientX, e.clientY);
+    });
+
+    joint.addEventListener('mousemove', e => {
+      if (!pinned) positionTooltip(e.clientX, e.clientY);
+    });
+
+    joint.addEventListener('mouseleave', () => {
+      if (!pinned) hideTooltip();
+    });
+
+    joint.addEventListener('click', e => {
+      e.stopPropagation();
+      if (activeJoint && activeJoint !== joint) {
+        activeJoint.classList.remove('active');
+      }
+      pinned = true;
+      activeJoint = joint;
+      joint.classList.add('active');
+      showTooltip(joint, e.clientX, e.clientY);
+    });
+  });
+
+  closeBtn.addEventListener('click', () => {
+    pinned = false;
+    hideTooltip();
+  });
+
+  document.addEventListener('click', e => {
+    if (!tooltip.contains(e.target) && !e.target.classList.contains('joint')) {
+      pinned = false;
+      hideTooltip();
+    }
+  });
+})();
