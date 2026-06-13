@@ -3,7 +3,7 @@
   --bg:       #06000f;
   --blue:     #00c8ff;
   --purple:   #a855f7;
-  --mid:      #6496ff;
+  --blue-mid: #6496ff;
   --green:    #00ff88;
   --red:      #ff6b6b;
   --text:     rgba(255, 255, 255, 0.85);
@@ -51,3 +51,9 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* 数据标签定位 */
+#dt-spine  { top: 30%; left: -10px; }
+#dt-hip    { top: 48%; right: -10px; }
+#dt-center { top: 60%; left: -10px; }
+#dt-ankle  { top: 83%; right: -10px; }
