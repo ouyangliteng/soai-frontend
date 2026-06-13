@@ -57,3 +57,123 @@ body {
 #dt-hip    { top: 48%; right: -10px; }
 #dt-center { top: 60%; left: -10px; }
 #dt-ankle  { top: 83%; right: -10px; }
+
+/* ── S01：全屏开场 ── */
+.s01 {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr auto;
+  align-items: center;
+  padding: 80px clamp(24px, 6vw, 100px);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 蓝色光晕 */
+.s01::after {
+  content: '';
+  position: absolute;
+  bottom: -120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(0,200,255,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.s01-content {
+  grid-column: 1;
+  grid-row: 1;
+  z-index: 1;
+}
+
+.s01-eyebrow {
+  font-size: 11px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin-bottom: 20px;
+  opacity: 0;
+}
+
+.s01-title {
+  font-size: clamp(48px, 7vw, 88px);
+  font-weight: 900;
+  line-height: 1.05;
+  margin-bottom: 24px;
+}
+
+.s01-line1 {
+  display: block;
+  color: var(--text);
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+.s01-line2 {
+  display: block;
+  background: linear-gradient(90deg, var(--blue), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+.s01-sub {
+  font-size: 16px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  opacity: 0;
+}
+
+/* 右侧骑手图 */
+.s01-hero-img {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+}
+
+.s01-hero-img img {
+  max-height: 70vh;
+  max-width: 100%;
+  object-fit: contain;
+  filter: brightness(0.85) saturate(1.1);
+  box-shadow: 0 0 60px rgba(0,200,255,0.25), 0 0 120px rgba(0,200,255,0.08);
+  border-radius: 4px;
+}
+
+/* 滚动提示 */
+.s01-scroll-hint {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 32px;
+  opacity: 0;
+  animation: pulse-hint 2s ease-in-out infinite;
+}
+
+.s01-scroll-arrow {
+  font-size: 20px;
+  color: var(--blue);
+}
+
+.s01-scroll-text {
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--data);
+}
+
+@keyframes pulse-hint {
+  0%, 100% { opacity: 0.6; transform: translateY(0); }
+  50%       { opacity: 1;   transform: translateY(4px); }
+}

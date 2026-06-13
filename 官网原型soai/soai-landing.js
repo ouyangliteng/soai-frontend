@@ -62,3 +62,23 @@
   buildParticles();
   tick();
 })();
+
+/* ── S01 进场动画 ── */
+(function initS01() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.querySelectorAll('.s01-eyebrow, .s01-line1, .s01-line2, .s01-sub, .s01-hero-img, .s01-scroll-hint')
+      .forEach(el => { el.style.opacity = '1'; el.style.transform = 'none'; });
+    return;
+  }
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+  tl.to('.s01-eyebrow', { opacity: 1, duration: 0.6 })
+    .to('.s01-line1',   { opacity: 1, y: 0, duration: 0.7 }, '-=0.3')
+    .to('.s01-line2',   { opacity: 1, y: 0, duration: 0.7 }, '-=0.5')
+    .to('.s01-sub',     { opacity: 1, duration: 0.6 },        '-=0.3')
+    .to('.s01-hero-img',{ opacity: 1, duration: 1 },           '-=0.5')
+    .to('.s01-scroll-hint', { opacity: 0.6, duration: 0.6 },  '-=0.3');
+})();
