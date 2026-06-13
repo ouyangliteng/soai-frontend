@@ -131,6 +131,7 @@
   ];
   const phaseEl = document.getElementById('s02-phase');
   let currentPhase = -1;
+  let phaseTimer = null;
 
   ScrollTrigger.create({
     trigger: '#s02',
@@ -165,7 +166,8 @@
         if (p >= phases[i].from && p < phases[i].to && currentPhase !== i) {
           currentPhase = i;
           phaseEl.style.opacity = '0';
-          setTimeout(() => {
+          clearTimeout(phaseTimer);
+          phaseTimer = setTimeout(() => {
             phaseEl.textContent = phases[i].text;
             phaseEl.style.opacity = '1';
           }, 200);
