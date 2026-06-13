@@ -278,7 +278,7 @@
 
   if (reduced) {
     document.querySelectorAll('.stat-num').forEach(el => {
-      el.textContent = el.dataset.target + el.dataset.suffix;
+      el.textContent = el.dataset.target + (el.dataset.suffix ?? '');
     });
     return;
   }
@@ -286,7 +286,8 @@
   // 数字滚动计数
   function countUp(el) {
     const target = parseInt(el.dataset.target, 10);
-    const suffix = el.dataset.suffix;
+    const suffix = el.dataset.suffix ?? '';
+    if (isNaN(target)) return;
     const duration = 1500;
     const start = performance.now();
 
