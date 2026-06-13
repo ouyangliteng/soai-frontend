@@ -80,5 +80,5 @@
     .to('.s01-line2',   { opacity: 1, y: 0, duration: 0.7 }, '-=0.5')
     .to('.s01-sub',     { opacity: 1, duration: 0.6 },        '-=0.3')
     .to('.s01-hero-img',{ opacity: 1, duration: 1 },           '-=0.5')
-    .to('.s01-scroll-hint', { opacity: 0.6, duration: 0.6 },  '-=0.3');
+    .to('.s01-scroll-hint', { opacity: 0.6, duration: 0.6, onComplete() { gsap.set('.s01-scroll-hint', { clearProps: 'opacity' }); } }, '-=0.3');
 })();
