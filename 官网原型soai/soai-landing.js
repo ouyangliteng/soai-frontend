@@ -204,6 +204,7 @@
     let left = x + 16;
     let top  = y - th / 2;
     if (left + tw > vw - 16) left = x - tw - 16;
+    if (left < 8) left = 8;
     if (top < 8) top = 8;
     if (top + th > vh - 8) top = vh - th - 8;
     tooltip.style.left = left + 'px';
