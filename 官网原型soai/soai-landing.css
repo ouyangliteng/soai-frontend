@@ -224,18 +224,24 @@ body {
 /* 骨骼路径初始设置（JS 会覆盖 dashoffset） */
 .bone { stroke-dasharray: 1000; stroke-dashoffset: 1000; }
 
-/* 关节点 */
+/* 关节点 - MediaPipe 风格 */
 .joint {
-  fill: none;
-  stroke: var(--blue);
-  stroke-width: 2;
+  fill: #06000f;
+  stroke-width: 2.5;
   cursor: pointer;
-  transition: r 0.2s, filter 0.2s;
+  transition: filter 0.2s, transform 0.2s;
+  transform-origin: center;
+  transform-box: fill-box;
 }
+
+.joint--spine { stroke: #00c8ff; fill: rgba(0,200,255,0.18); }
+.joint--arm   { stroke: #00e5cc; fill: rgba(0,229,204,0.15); }
+.joint--leg   { stroke: #a855f7; fill: rgba(168,85,247,0.18); }
 
 .joint:hover,
 .joint.active {
-  filter: drop-shadow(0 0 6px var(--blue));
+  filter: drop-shadow(0 0 8px currentColor);
+  transform: scale(1.25);
 }
 
 /* 数据标签 */
@@ -279,6 +285,15 @@ body {
   50%       { transform: scaleY(1);   opacity: 0.5; }
 }
 
+/* MediaPipe 检测框 */
+.detect-box { opacity: 0; transition: opacity 0.6s ease; }
+.detect-box.visible { opacity: 1; }
+.detect-corner { opacity: 0; transition: opacity 0.4s ease; }
+.detect-corner.visible { opacity: 1; }
+.confidence-label { opacity: 0; transition: opacity 0.5s ease; }
+.confidence-label.visible { opacity: 1; }
+#conf-labels { transition: opacity 0.6s ease; }
+
 /* ── Tooltip ── */
 .tooltip {
   position: fixed;
@@ -314,6 +329,13 @@ body {
   font-size: 18px;
   font-weight: 700;
   color: var(--text);
+  margin-bottom: 6px;
+}
+
+.tooltip-conf {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--green);
   margin-bottom: 6px;
 }
 

@@ -37,54 +37,107 @@
       <div class="s02-center">
         <svg
           id="skeleton-svg"
-          viewBox="0 0 220 310"
-          aria-label="骑手骨骼姿态分析图"
+          viewBox="0 0 260 320"
+          aria-label="骑手 AI 姿态识别图"
           role="img"
         >
-          <!-- 关节点（可交互，初始隐藏） -->
-          <g id="joints" opacity="0">
-            <circle class="joint" id="j-head"    cx="110" cy="28"  r="6" data-name="头部"   data-val="前倾 8°"  data-tip="保持头部自然中立，视线水平向前" />
-            <circle class="joint" id="j-neck"    cx="108" cy="62"  r="5" data-name="颈椎"   data-val="对齐良好" data-tip="颈部放松，避免紧缩" />
-            <circle class="joint" id="j-lsho"    cx="62"  cy="82"  r="5" data-name="左肩"   data-val="外旋 6°"  data-tip="肩部下沉，减少外旋幅度" />
-            <circle class="joint" id="j-rsho"    cx="158" cy="82"  r="5" data-name="右肩"   data-val="对称良好" data-tip="保持双肩水平，当前状态良好" />
-            <circle class="joint" id="j-lelbow"  cx="44"  cy="138" r="5" data-name="左肘"   data-val="弯曲 95°" data-tip="肘部保持自然弯曲，轻持缰绳" />
-            <circle class="joint" id="j-relbow"  cx="176" cy="138" r="5" data-name="右肘"   data-val="弯曲 92°" data-tip="右肘略需放松，与左侧保持对称" />
-            <circle class="joint" id="j-hip"     cx="106" cy="138" r="6" data-name="髋部"   data-val="稳定 87%" data-tip="髋部稳定性良好，继续保持深坐" />
-            <circle class="joint" id="j-lknee"   cx="52"  cy="185" r="5" data-name="左膝"   data-val="内扣 4°"  data-tip="左膝微有内扣，注意放松大腿内侧" />
-            <circle class="joint" id="j-rknee"   cx="158" cy="185" r="5" data-name="右膝"   data-val="对称良好" data-tip="右膝位置正确，踩镫力度均匀" />
-            <circle class="joint" id="j-lankle"  cx="56"  cy="250" r="5" data-name="左踝"   data-val="踩镫 −2°" data-tip="脚跟稍向下压，增加踩镫稳定性" />
-            <circle class="joint" id="j-rankle"  cx="154" cy="250" r="5" data-name="右踝"   data-val="踩镫良好" data-tip="右踝角度正确，保持当前状态" />
+          <defs>
+            <linearGradient id="spineGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#00c8ff"/>
+              <stop offset="100%" stop-color="#6496ff"/>
+            </linearGradient>
+            <linearGradient id="legGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#a855f7"/>
+              <stop offset="100%" stop-color="#7c3aed"/>
+            </linearGradient>
+          </defs>
+
+          <!-- 检测边框 -->
+          <rect class="detect-box" x="18" y="8" width="224" height="302" rx="4"
+            fill="none" stroke="rgba(0,200,255,0.25)" stroke-width="1"
+            stroke-dasharray="6 4"/>
+          <!-- 角标 -->
+          <polyline class="detect-corner" points="18,28 18,8 38,8"   fill="none" stroke="#00c8ff" stroke-width="2"/>
+          <polyline class="detect-corner" points="222,8 242,8 242,28"  fill="none" stroke="#00c8ff" stroke-width="2"/>
+          <polyline class="detect-corner" points="18,292 18,310 38,310" fill="none" stroke="#a855f7" stroke-width="2"/>
+          <polyline class="detect-corner" points="222,310 242,310 242,292" fill="none" stroke="#a855f7" stroke-width="2"/>
+
+          <!-- 置信度标签 -->
+          <g class="confidence-label">
+            <rect x="18" y="8" width="110" height="18" rx="2" fill="rgba(0,200,255,0.12)"/>
+            <text x="26" y="21" font-size="9" fill="#00c8ff" font-family="monospace" letter-spacing="1">POSE · 94.7%</text>
           </g>
 
-          <!-- 骨骼路径（stroke-dashoffset 动画） -->
+          <!-- 骨骼路径（保持 .bone-group IDs 供 JS 动画驱动） -->
           <g id="bones" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <!-- 脊柱 group (0–20%) -->
-            <g class="bone-group" id="bg-spine" stroke="#00c8ff" stroke-width="2">
-              <line class="bone" x1="110" y1="48" x2="108" y2="68" />
-              <line class="bone" x1="108" y1="68" x2="106" y2="138" />
+            <!-- 脊柱 (0–20%) -->
+            <g class="bone-group" id="bg-spine" stroke="url(#spineGrad)" stroke-width="3">
+              <line class="bone" x1="130" y1="52" x2="128" y2="75"/>
+              <line class="bone" x1="128" y1="75" x2="126" y2="150"/>
             </g>
-            <!-- 头部 group (20–30%) -->
-            <g class="bone-group" id="bg-head" stroke="#00c8ff" stroke-width="2">
-              <circle class="bone" cx="110" cy="28" r="20" fill="none" />
+            <!-- 头部 (20–30%) -->
+            <g class="bone-group" id="bg-head" stroke="#00c8ff" stroke-width="2.5">
+              <circle class="bone" cx="130" cy="32" r="22" fill="none"/>
+              <line class="bone" x1="130" y1="52" x2="130" y2="42"/>
             </g>
-            <!-- 肩臂 group (30–50%) -->
-            <g class="bone-group" id="bg-arms" stroke="#6496ff" stroke-width="1.8">
-              <line class="bone" x1="62"  y1="82"  x2="158" y2="82"  />
-              <line class="bone" x1="62"  y1="82"  x2="44"  y2="138" />
-              <line class="bone" x1="158" y1="82"  x2="176" y2="138" />
+            <!-- 肩臂 (30–50%) -->
+            <g class="bone-group" id="bg-arms" stroke="#00e5cc" stroke-width="3">
+              <line class="bone" x1="75"  y1="88"  x2="185" y2="88"/>
+              <line class="bone" x1="75"  y1="88"  x2="55"  y2="150"/>
+              <line class="bone" x1="185" y1="88"  x2="205" y2="150"/>
+              <line class="bone" x1="55"  y1="150" x2="50"  y2="188"/>
+              <line class="bone" x1="205" y1="150" x2="210" y2="188"/>
             </g>
-            <!-- 髋腿 group (50–80%) -->
-            <g class="bone-group" id="bg-legs" stroke="#a855f7" stroke-width="1.8">
-              <line class="bone" x1="106" y1="138" x2="78"  y2="148" />
-              <line class="bone" x1="106" y1="138" x2="132" y2="148" />
-              <line class="bone" x1="78"  y1="148" x2="52"  y2="185" />
-              <line class="bone" x1="132" y1="148" x2="158" y2="185" />
+            <!-- 髋腿 (50–80%) -->
+            <g class="bone-group" id="bg-legs" stroke="url(#legGrad)" stroke-width="3">
+              <line class="bone" x1="126" y1="150" x2="95"  y2="162"/>
+              <line class="bone" x1="126" y1="150" x2="157" y2="162"/>
+              <line class="bone" x1="95"  y1="162" x2="72"  y2="210"/>
+              <line class="bone" x1="157" y1="162" x2="180" y2="210"/>
             </g>
-            <!-- 脚踝 group (80–100%) -->
-            <g class="bone-group" id="bg-ankles" stroke="#a855f7" stroke-width="1.8">
-              <line class="bone" x1="52"  y1="185" x2="56"  y2="250" />
-              <line class="bone" x1="158" y1="185" x2="154" y2="250" />
+            <!-- 脚踝 (80–100%) -->
+            <g class="bone-group" id="bg-ankles" stroke="url(#legGrad)" stroke-width="2.5">
+              <line class="bone" x1="72"  y1="210" x2="76"  y2="268"/>
+              <line class="bone" x1="180" y1="210" x2="176" y2="268"/>
             </g>
+          </g>
+
+          <!-- 关节点（大圆 MediaPipe 风格，初始隐藏） -->
+          <g id="joints" opacity="0">
+            <!-- 头颈 -->
+            <circle class="joint joint--spine" id="j-head"   cx="130" cy="32"  r="8" data-name="头部"   data-val="前倾 8°"   data-tip="保持头部自然中立，视线水平向前" data-conf="96.2"/>
+            <circle class="joint joint--spine" id="j-neck"   cx="128" cy="70"  r="7" data-name="颈椎"   data-val="对齐良好"  data-tip="颈部放松，避免紧缩" data-conf="95.1"/>
+            <!-- 肩 -->
+            <circle class="joint joint--arm"   id="j-lsho"   cx="75"  cy="88"  r="8" data-name="左肩"   data-val="外旋 6°"   data-tip="肩部下沉，减少外旋幅度" data-conf="93.4"/>
+            <circle class="joint joint--arm"   id="j-rsho"   cx="185" cy="88"  r="8" data-name="右肩"   data-val="对称良好"  data-tip="保持双肩水平，当前状态良好" data-conf="94.7"/>
+            <!-- 肘 -->
+            <circle class="joint joint--arm"   id="j-lelbow" cx="55"  cy="150" r="8" data-name="左肘"   data-val="弯曲 95°"  data-tip="肘部保持自然弯曲，轻持缰绳" data-conf="91.3"/>
+            <circle class="joint joint--arm"   id="j-relbow" cx="205" cy="150" r="8" data-name="右肘"   data-val="弯曲 92°"  data-tip="右肘略需放松，与左侧保持对称" data-conf="90.8"/>
+            <!-- 腕 -->
+            <circle class="joint joint--arm"   id="j-lwrist" cx="50"  cy="188" r="6" data-name="左腕"   data-val="握缰稳定"  data-tip="握缰力度均匀，保持放松" data-conf="88.5"/>
+            <circle class="joint joint--arm"   id="j-rwrist" cx="210" cy="188" r="6" data-name="右腕"   data-val="握缰稳定"  data-tip="右腕略有紧张，尝试放松手指" data-conf="87.9"/>
+            <!-- 髋 -->
+            <circle class="joint joint--spine" id="j-hip"    cx="126" cy="150" r="9" data-name="髋部"   data-val="稳定 87%"  data-tip="髋部稳定性良好，继续保持深坐" data-conf="97.1"/>
+            <circle class="joint joint--leg"   id="j-lhip"   cx="95"  cy="162" r="7" data-name="左髋"   data-val="内旋 3°"   data-tip="左髋关节轻微内旋，注意放松" data-conf="92.6"/>
+            <circle class="joint joint--leg"   id="j-rhip"   cx="157" cy="162" r="7" data-name="右髋"   data-val="对称良好"  data-tip="右髋位置正确" data-conf="93.0"/>
+            <!-- 膝 -->
+            <circle class="joint joint--leg"   id="j-lknee"  cx="72"  cy="210" r="8" data-name="左膝"   data-val="内扣 4°"   data-tip="左膝微有内扣，注意放松大腿内侧" data-conf="89.4"/>
+            <circle class="joint joint--leg"   id="j-rknee"  cx="180" cy="210" r="8" data-name="右膝"   data-val="对称良好"  data-tip="右膝位置正确，踩镫力度均匀" data-conf="91.2"/>
+            <!-- 踝 -->
+            <circle class="joint joint--leg"   id="j-lankle" cx="76"  cy="268" r="7" data-name="左踝"   data-val="踩镫 −2°"  data-tip="脚跟稍向下压，增加踩镫稳定性" data-conf="86.3"/>
+            <circle class="joint joint--leg"   id="j-rankle" cx="176" cy="268" r="7" data-name="右踝"   data-val="踩镫良好"  data-tip="右踝角度正确，保持当前状态" data-conf="87.8"/>
+          </g>
+
+          <!-- 关节置信度标签（骨骼完成后显示） -->
+          <g id="conf-labels" opacity="0" font-size="7" font-family="monospace" fill="rgba(255,255,255,0.5)">
+            <text x="142" y="35"  >96%</text>
+            <text x="142" y="152" >97%</text>
+            <text x="56"  y="84"  >93%</text>
+            <text x="192" y="84"  >95%</text>
+            <text x="20"  y="153" >91%</text>
+            <text x="212" y="153" >91%</text>
+            <text x="50"  y="206" >89%</text>
+            <text x="185" y="206" >91%</text>
           </g>
         </svg>
 
@@ -105,6 +158,7 @@
     <div id="tooltip" class="tooltip" role="tooltip" aria-live="polite">
       <div class="tooltip-name"></div>
       <div class="tooltip-val"></div>
+      <div class="tooltip-conf"></div>
       <div class="tooltip-tip"></div>
       <button class="tooltip-close" aria-label="关闭">×</button>
     </div>

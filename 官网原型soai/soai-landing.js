@@ -92,6 +92,8 @@
     });
     document.getElementById('joints').style.opacity = '1';
     document.querySelectorAll('.data-tag').forEach(t => t.style.opacity = '1');
+    document.querySelectorAll('.detect-box, .detect-corner, .confidence-label').forEach(el => el.classList.add('visible'));
+    document.getElementById('conf-labels').style.opacity = '1';
     return;
   }
 
@@ -161,6 +163,15 @@
       // 关节点淡入（骨骼基本完成后）
       document.getElementById('joints').style.opacity = p > 0.85 ? String(Math.min(1, (p - 0.85) / 0.1)) : '0';
 
+      // MediaPipe 检测框和置信度标签
+      if (p > 0.15) {
+        document.querySelectorAll('.detect-box, .detect-corner').forEach(el => el.classList.add('visible'));
+      }
+      if (p > 0.88) {
+        document.querySelector('.confidence-label').classList.add('visible');
+        document.getElementById('conf-labels').style.opacity = String(Math.min(1, (p - 0.88) / 0.1));
+      }
+
       // 左侧文案切换
       for (let i = 0; i < phases.length; i++) {
         if (p >= phases[i].from && p < phases[i].to && currentPhase !== i) {
@@ -192,6 +203,9 @@
     nameEl.textContent = joint.dataset.name;
     valEl.textContent  = joint.dataset.val;
     tipEl.textContent  = joint.dataset.tip;
+    const conf = joint.dataset.conf;
+    const confEl = tooltip.querySelector('.tooltip-conf');
+    if (confEl) confEl.textContent = conf ? `置信度 ${conf}%` : '';
     tooltip.classList.add('visible');
     positionTooltip(x, y);
   }
