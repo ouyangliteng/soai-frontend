@@ -58,15 +58,42 @@ function generateTrainingReport(input) {
   const risk = input.videoAnalysis.detectedRisks[0];
   const ruleResults = input.ruleResults && input.ruleResults.length ? input.ruleResults : [];
   const ruleScoreMap = Object.fromEntries(ruleResults.map((item) => [item.ruleId, item.score]));
-  const mainProblem = pickRule(ruleResults, ["upper_body_stability", "lower_leg_stability", "arm_aid"]) || null;
-  const mainRisk = pickRule(ruleResults, ["lower_leg_stability", "knee_grip", "left_right_symmetry"]) || null;
+  const mainProblem = pickRule(ruleResults, [
+    "ffe_vertical_head_pelvis_heel",
+    "ffe_shoulder_hip_heel_alignment",
+    "upper_body_stability",
+    "lower_leg_stability",
+    "arm_aid"
+  ]) || null;
+  const mainRisk = pickRule(ruleResults, [
+    "dynamic_balance",
+    "heel_down",
+    "lower_leg_stability",
+    "knee_softness",
+    "left_right_symmetry"
+  ]) || null;
 
   const scores = {
-    postureControl: clamp(ruleScoreMap.upper_body_stability || baseScore - 2),
-    rhythmControl: clamp(baseScore + 1),
-    stability: clamp(ruleScoreMap.lower_leg_stability || baseScore - 3),
-    aidAccuracy: clamp(ruleScoreMap.arm_aid || baseScore - 4),
-    safetyAwareness: clamp(ruleScoreMap.knee_grip || baseScore)
+    postureControl: clamp(averageScore([
+      ruleScoreMap.ffe_vertical_head_pelvis_heel,
+      ruleScoreMap.ffe_shoulder_hip_heel_alignment,
+      ruleScoreMap.upper_body_stability
+    ], baseScore - 2)),
+    rhythmControl: clamp(ruleScoreMap.dynamic_balance || baseScore + 1),
+    stability: clamp(averageScore([
+      ruleScoreMap.lower_leg_stability,
+      ruleScoreMap.heel_down,
+      ruleScoreMap.left_right_symmetry
+    ], baseScore - 3)),
+    aidAccuracy: clamp(averageScore([
+      ruleScoreMap.arm_aid,
+      ruleScoreMap.hands_in_front
+    ], baseScore - 4)),
+    safetyAwareness: clamp(averageScore([
+      ruleScoreMap.knee_softness,
+      ruleScoreMap.dynamic_balance,
+      ruleScoreMap.heel_down
+    ], baseScore))
   };
   const overallScore = Math.round(
     scores.postureControl * 0.25 +
@@ -90,7 +117,7 @@ function generateTrainingReport(input) {
       {
         ruleResultId: mainProblem ? mainProblem.ruleResultId : "",
         title: mainProblem ? `${mainProblem.metricName}需关注` : "快步阶段上身略前倾",
-        detail: mainProblem ? mainProblem.explanation : "从视频可见，快步阶段上身重心略向前，可能影响骑坐稳定性。",
+        detail: mainProblem ? mainProblem.explanation : "从视频可见，快步阶段上体重心略向前，骑坐中心与下肢承重线需要保持更稳定。",
         severity: mainProblem ? severityToReport(mainProblem.severity) : "medium",
         evidence: mainProblem ? `视频中 ${mainProblem.timeRange} 阶段较明显。` : movement ? `视频中 ${movement.timeRange} 阶段较明显。` : "视频片段中可见该问题。",
         suggestion: buildSuggestion(mainProblem ? mainProblem.ruleId : "upper_body_stability")
@@ -100,7 +127,7 @@ function generateTrainingReport(input) {
       {
         ruleResultId: mainRisk ? mainRisk.ruleResultId : "",
         title: mainRisk ? `${mainRisk.metricName}风险需复核` : "小腿位置稳定性需关注",
-        detail: mainRisk ? mainRisk.explanation : "该表现可能影响扶助准确性，建议教练结合现场情况复核。",
+        detail: mainRisk ? mainRisk.explanation : "该表现可能影响骑坐平衡、下肢缓冲和扶助准确性，建议教练结合现场情况复核。",
         riskLevel: mainRisk && mainRisk.severity === "high" ? "high" : "medium",
         evidence: mainRisk ? `视频中 ${mainRisk.timeRange} 阶段较明显。` : risk ? `视频中 ${risk.timeRange} 阶段较明显。` : "视频角度有限，建议教练复核。",
         coachReviewRequired: true
@@ -110,8 +137,8 @@ function generateTrainingReport(input) {
       ? ["相比上次，节奏控制更连续。", "转弯前视线方向更明确。"]
       : ["首次报告已建立训练基线，后续可通过趋势观察进步。"],
     nextTrainingFocus: [
-      buildSuggestion("upper_body_stability"),
-      buildSuggestion("lower_leg_stability"),
+      buildSuggestion("ffe_vertical_head_pelvis_heel"),
+      buildSuggestion("heel_down"),
       buildSuggestion("arm_aid")
     ],
     trendSummary: buildTrendSummary(history, overallScore),
@@ -127,15 +154,15 @@ function generateTrainingReport(input) {
 
 function buildSafetyRidingEvaluation({ scores, mainProblem, mainRisk, confidenceLevel }) {
   const stabilityText = scores.stability >= 84
-    ? "本次骑坐稳定性整体可控，基础姿态能支持常规训练节奏。"
-    : "本次骑坐稳定性仍需提高，建议先降低动作复杂度，保持肩、髋、脚跟接近垂直线。";
+    ? "本次骑坐中心整体可控，骨盆、肩线和下肢承重能支持常规训练节奏。"
+    : "本次骑坐平衡仍需提高，建议先降低动作复杂度，保持头、骨盆、脚跟接近垂直线。";
   const aidText = scores.aidAccuracy >= 84
-    ? "手部与腿部扶助较清晰，继续保持轻柔、连续、可预测的扶助节奏。"
-    : "扶助准确性存在波动，建议通过教学耳机保持即时沟通，避免在失衡时继续加速或加大扶助。";
+    ? "手部与腿部扶助较清晰，继续保持肘部柔软、缰绳联系轻柔、腿部扶助连续。"
+    : "扶助准确性存在波动，建议通过教学耳机保持即时沟通，避免在身体失衡、脚跟上浮或路线偏移时继续加速。";
   const riskText = mainRisk
     ? `${mainRisk.metricName}需要重点复核：${mainRisk.explanation}训练中如出现紧张、路线偏移或身体明显失衡，应先回到慢速节奏。`
     : "AI 未标记明显中高风险动作，但仍需结合马匹状态、场地干扰和学员体感进行现场判断。";
-  const productText = "建议训练时规范佩戴马术头盔、护甲等防护装备；使用充气护甲时应确认气瓶、连接绳和触发位置正确，教学耳机用于保持教练即时指令畅通。";
+  const productText = "训练前建议完成头盔、充气护甲和马靴等基础防护检查；充气护甲应确认气瓶、连接绳、尺码贴合和触发位置，防护装备用于建立安全边界，不能替代正确骑坐、教练保护和场地管理。";
   const boundaryText = confidenceLevel === "high"
     ? "本次视频可作为训练复盘参考，但安全结论仍以教练现场判断为准。"
     : "本次视频角度或遮挡可能影响识别精度，安全结论必须由教练结合现场情况复核。";
@@ -315,13 +342,25 @@ function severityToReport(severity) {
 
 function buildSuggestion(ruleId) {
   const map = {
-    upper_body_stability: "保持上身稳定，减少快步阶段前倾，优先确认肩、髋、脚跟接近垂直线。",
-    lower_leg_stability: "练习小腿位置稳定性，避免脚踝相对髋部过度前后漂移。",
-    knee_grip: "放松膝部夹持，优先保持骑坐深度和腿部自然贴靠。",
-    arm_aid: "保持手臂和前臂扶助连续，避免手部高度和肘角大幅波动。",
-    left_right_symmetry: "通过轻快步节奏练习观察左右骑坐对称性。"
+    ffe_vertical_head_pelvis_heel: "保持头、骨盆、脚跟接近同一垂直线，先建立稳定骑坐中心，再增加步伐和路线变化。",
+    ffe_shoulder_hip_heel_alignment: "让肩、髋、脚跟形成清晰承重线，避免上体前抢或小腿后滑导致平衡点离开马背中心。",
+    upper_body_stability: "保持胸腔打开、肩线放松、骨盆中立，快步中减少上体前后摆动，让骑坐跟随马背节奏。",
+    lower_leg_stability: "小腿自然贴靠马体两侧，膝部不夹死，脚踝在髋部下方保持稳定承重。",
+    knee_grip: "放松膝部夹持，用大腿内侧轻贴和坐骨感受马背，避免用膝盖锁住骑坐。",
+    knee_softness: "保持髋、膝、踝三关节柔软缓冲，让腿部跟随马背律动而不是固定僵硬。",
+    heel_down: "脚跟向下、脚掌轻踩镫，利用脚跟承重建立下肢安全边界，避免脚尖下压或脚跟上浮。",
+    arm_aid: "肘部保持弹性，前臂与缰绳方向一致，手部扶助轻柔连续，避免突然拉扯影响马匹节奏。",
+    hands_in_front: "双手稳定在身前，保持轻柔缰绳联系；身体失衡时先恢复骑坐，不用手去找平衡。",
+    dynamic_balance: "先在慢速和稳定路线中找回坐骨、核心与脚跟承重，再进入快步、转弯或过渡练习。",
+    left_right_symmetry: "观察左右坐骨是否均匀承重，保持肩线和骨盆水平，避免身体一侧塌陷影响路线。"
   };
   return map[ruleId] || "下次训练中只抓 1 到 2 个重点，并由教练现场确认。";
+}
+
+function averageScore(values, fallback) {
+  const clean = values.filter((value) => Number.isFinite(Number(value))).map(Number);
+  if (!clean.length) return fallback;
+  return Math.round(clean.reduce((sum, value) => sum + value, 0) / clean.length);
 }
 
 function clamp(value) {
