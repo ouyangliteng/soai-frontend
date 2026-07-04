@@ -1,7 +1,8 @@
 const http = require("http");
+const https = require("https");
 const crypto = require("crypto");
 const { URL } = require("url");
-const { db, ensureStudentProfile, ensureReportPoseTrack, getStudentProfile, saveDb } = require("./data");
+const { db, ensureStudentProfile, ensureReportPoseTrack, getStudentProfile, saveDb, uniqueId } = require("./data");
 const {
   completeTask,
   getTaskView,
@@ -109,7 +110,7 @@ function createServer() {
         if (validation) return send(res, 400, validation);
 
         const video = {
-          id: `video_${Date.now()}`,
+          id: uniqueId("video"),
           studentId: db.profile.id,
           coachId: db.profile.coachId,
           fileName: payload.fileName,
@@ -163,7 +164,7 @@ function createServer() {
         if (!video) return sendError(res, 404, "VIDEO_NOT_FOUND", "未找到视频记录。");
 
         const task = {
-          id: `task_${Date.now()}`,
+          id: uniqueId("task"),
           studentId: payload.studentId,
           videoId: payload.videoId,
           status: "queued",
@@ -205,7 +206,7 @@ function createServer() {
 
         const task = {
           ...oldTask,
-          id: `task_${Date.now()}`,
+          id: uniqueId("task"),
           status: "queued",
           progress: 5,
           progressText: "重新进入分析队列",
@@ -463,17 +464,27 @@ async function handleLiteRequest(req, res, url) {
 
   if (req.method === "POST" && path === "/auth/wx-login") {
     const payload = await readJson(req);
-    const anonymousId = sanitizeIdentity(payload.anonymousId || payload.code || `${Date.now()}`);
-    const studentId = `student_lite_${shortHash(anonymousId)}`;
+    const loginResult = await resolveLiteWechatLogin(payload);
+    if (loginResult.error) {
+      return sendError(res, loginResult.error.status, loginResult.error.code, loginResult.error.message);
+    }
+    const identitySeed = loginResult.openid ? `wx_${loginResult.openid}` : `mock_${loginResult.anonymousId}`;
+    const studentId = `student_lite_${shortHash(identitySeed)}`;
     const profilePatch = {
-      userId: `lite_${anonymousId}`,
+      userId: loginResult.openid ? `wx_${shortHash(loginResult.openid)}` : `lite_${loginResult.anonymousId}`,
+      wxLoginMode: loginResult.loginMode,
+      wxLastLoginAt: nowIso()
     };
+    if (loginResult.openid) profilePatch.wxOpenIdHash = shortHash(loginResult.openid);
+    if (loginResult.unionid) profilePatch.wxUnionIdHash = shortHash(loginResult.unionid);
     if (payload.name || payload.nickName) profilePatch.name = payload.name || payload.nickName;
     if (payload.avatarUrl) profilePatch.avatarUrl = payload.avatarUrl;
     const profile = ensureStudentProfile(studentId, profilePatch);
+    saveDb();
     return send(res, 200, {
       token: `lite_${studentId}`,
       profile,
+      authMode: loginResult.loginMode,
       expiresInSec: 30 * 24 * 60 * 60
     });
   }
@@ -563,7 +574,7 @@ async function handleLiteRequest(req, res, url) {
     }
 
     const video = {
-      id: `video_${Date.now()}`,
+      id: uniqueId("video"),
       studentId: identity.studentId,
       coachId: profile.coachId || "",
       fileName: payload.fileName,
@@ -620,7 +631,7 @@ async function handleLiteRequest(req, res, url) {
     const existingReport = findExistingReportForVideo(identity.studentId, video);
     if (existingReport) {
       const task = {
-        id: `task_${Date.now()}`,
+        id: uniqueId("task"),
         studentId: identity.studentId,
         videoId: payload.videoId,
         status: "completed",
@@ -654,7 +665,7 @@ async function handleLiteRequest(req, res, url) {
     }
 
     const task = {
-      id: `task_${Date.now()}`,
+      id: uniqueId("task"),
       studentId: identity.studentId,
       videoId: payload.videoId,
       status: "queued",
@@ -724,6 +735,129 @@ async function handleLiteRequest(req, res, url) {
   return sendError(res, 404, "LITE_NOT_FOUND", "学员端接口不存在。");
 }
 
+async function resolveLiteWechatLogin(payload) {
+  const code = String(payload.code || "").trim();
+  if (!code) {
+    return {
+      error: {
+        status: 400,
+        code: "WX_CODE_REQUIRED",
+        message: "请先通过微信登录获取登录凭证。"
+      }
+    };
+  }
+
+  const config = getWechatLoginConfig();
+  if (!config.appId || !config.secret) {
+    if (allowMockWechatLogin()) return buildMockWechatLogin(payload, code, "mock_missing_config");
+    return {
+      error: {
+        status: 500,
+        code: "WECHAT_LOGIN_CONFIG_MISSING",
+        message: "微信登录未配置 AppID/AppSecret，请联系管理员。"
+      }
+    };
+  }
+
+  try {
+    const session = await requestWechatCode2Session(config, code);
+    if (session.errcode) {
+      return {
+        error: {
+          status: 401,
+          code: "WECHAT_LOGIN_FAILED",
+          message: `微信登录失败：${session.errmsg || session.errcode}`
+        }
+      };
+    }
+    if (!session.openid) {
+      return {
+        error: {
+          status: 502,
+          code: "WECHAT_LOGIN_NO_OPENID",
+          message: "微信登录未返回 openid，请稍后重试。"
+        }
+      };
+    }
+    return {
+      loginMode: "wechat_code2session",
+      openid: session.openid,
+      unionid: session.unionid || "",
+      sessionKey: session.session_key || ""
+    };
+  } catch (error) {
+    if (process.env.SOAI_WECHAT_LOGIN_ALLOW_MOCK_ON_ERROR === "true" && allowMockWechatLogin()) {
+      return buildMockWechatLogin(payload, code, "mock_code2session_error");
+    }
+    return {
+      error: {
+        status: 502,
+        code: "WECHAT_LOGIN_UPSTREAM_ERROR",
+        message: `微信登录服务暂时不可用：${error.message}`
+      }
+    };
+  }
+}
+
+function getWechatLoginConfig() {
+  return {
+    appId: process.env.WECHAT_MINI_APP_ID || process.env.WX_MINI_APP_ID || process.env.WECHAT_APP_ID || process.env.WECHAT_APPID || "",
+    secret: process.env.WECHAT_MINI_APP_SECRET || process.env.WX_MINI_APP_SECRET || process.env.WECHAT_APP_SECRET || process.env.WECHAT_SECRET || "",
+    endpoint: process.env.WECHAT_CODE2SESSION_URL || "https://api.weixin.qq.com/sns/jscode2session"
+  };
+}
+
+function allowMockWechatLogin() {
+  return process.env.SOAI_WECHAT_LOGIN_ALLOW_MOCK === "true" || process.env.NODE_ENV !== "production";
+}
+
+function buildMockWechatLogin(payload, code, loginMode) {
+  const anonymousId = sanitizeIdentity(payload.anonymousId || code || `${Date.now()}`);
+  return {
+    loginMode,
+    anonymousId,
+    openid: "",
+    unionid: "",
+    sessionKey: ""
+  };
+}
+
+function requestWechatCode2Session(config, code) {
+  return new Promise((resolve, reject) => {
+    const target = new URL(config.endpoint);
+    target.searchParams.set("appid", config.appId);
+    target.searchParams.set("secret", config.secret);
+    target.searchParams.set("js_code", code);
+    target.searchParams.set("grant_type", "authorization_code");
+
+    const client = target.protocol === "http:" ? http : https;
+    const req = client.request(target, {
+      method: "GET",
+      timeout: Number(process.env.WECHAT_CODE2SESSION_TIMEOUT_MS || 5000)
+    }, (res) => {
+      const chunks = [];
+      res.on("data", (chunk) => chunks.push(chunk));
+      res.on("end", () => {
+        const text = Buffer.concat(chunks).toString("utf8");
+        if (res.statusCode >= 400) {
+          reject(new Error(`HTTP ${res.statusCode}`));
+          return;
+        }
+        try {
+          resolve(text ? JSON.parse(text) : {});
+        } catch {
+          reject(new Error("微信登录返回格式不正确。"));
+        }
+      });
+    });
+    req.on("timeout", () => {
+      req.destroy(new Error("微信登录请求超时。"));
+    });
+    req.on("error", reject);
+    req.end();
+  });
+}
+
 function getLiteIdentity(req) {
   const auth = req.headers.authorization || "";
   const token = auth.replace(/^Bearer\s+/i, "").trim();
@@ -753,10 +887,11 @@ function getDailyUploadQuota(studentId) {
 
 function getLiteInviteCodes() {
   const configured = process.env.SOAI_LITE_INVITE_CODES || "SOAI2026";
-  return configured
+  const configuredCodes = configured
     .split(",")
     .map((code) => normalizeInviteCode(code))
     .filter(Boolean);
+  return Array.from(new Set(["SOAI2026", ...configuredCodes]));
 }
 
 function normalizeInviteCode(value) {
@@ -792,10 +927,6 @@ function verifyLiteInviteCode(profile, rawCode) {
   }
   if (!codes.includes(inviteCode)) {
     return { ok: false, status: 403, code: "INVITE_CODE_INVALID", message: "邀请码不正确，请向 SOAI 内测负责人确认。" };
-  }
-  const maxUsers = Number(process.env.SOAI_LITE_INVITE_MAX_USERS || 20);
-  if (!profile.inviteVerifiedAt && countInviteAcceptedUsers() >= maxUsers) {
-    return { ok: false, status: 403, code: "INVITE_TESTER_LIMIT_REACHED", message: `本轮内测名额已达到 ${maxUsers} 人，请联系 SOAI 开放下一批名额。` };
   }
   profile.inviteVerifiedAt = profile.inviteVerifiedAt || nowIso();
   profile.inviteStatus = "verified";
