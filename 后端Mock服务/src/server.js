@@ -872,11 +872,15 @@ function getLiteIdentity(req) {
 function getDailyUploadQuota(studentId) {
   const limit = Number(process.env.SOAI_LITE_DAILY_UPLOAD_LIMIT || 3);
   const dateKey = chinaDateKey(new Date());
-  const used = db.videos.filter((video) => (
-    video.studentId === studentId &&
-    video.uploadStatus === "uploaded" &&
-    chinaDateKey(new Date(video.createdAt)) === dateKey
-  )).length;
+  const completedReportKeys = new Set();
+  db.reports.forEach((report) => {
+    if (report.studentId !== studentId) return;
+    const createdAt = new Date(report.createdAt || report.trainingDate || Date.now());
+    if (Number.isNaN(createdAt.getTime())) return;
+    if (chinaDateKey(createdAt) !== dateKey) return;
+    completedReportKeys.add(report.videoSignature || report.videoId || report.id);
+  });
+  const used = completedReportKeys.size;
   return {
     limit,
     used,

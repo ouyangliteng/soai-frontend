@@ -46,6 +46,10 @@ async function main() {
     assert.strictEqual(task.errorCode, "ANALYSIS_PIPELINE_FAILED");
     assert.ok(task.errorMessage.includes("真实姿态识别"));
 
+    const quotaAfterFailure = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
+    assert.strictEqual(quotaAfterFailure.used, 0);
+    assert.strictEqual(quotaAfterFailure.remaining, 3);
+
     console.log("real pose required tests passed");
   } finally {
     await new Promise((resolve) => server.close(resolve));

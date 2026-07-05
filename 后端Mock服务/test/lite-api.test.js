@@ -100,8 +100,8 @@ async function main() {
     assert.strictEqual(uploadResult.statusCode, 200);
 
     const quotaAfterUpload = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
-    assert.strictEqual(quotaAfterUpload.used, 1);
-    assert.strictEqual(quotaAfterUpload.remaining, 2);
+    assert.strictEqual(quotaAfterUpload.used, 0);
+    assert.strictEqual(quotaAfterUpload.remaining, 3);
 
     const firstTask = await request(baseUrl, "POST", "/api/lite/v1/analysis/tasks", {
       videoId: firstVideo.videoId
@@ -109,6 +109,10 @@ async function main() {
     const firstTaskDone = await request(baseUrl, "GET", `/api/lite/v1/analysis/tasks/${firstTask.taskId}`, null, headers);
     assert.strictEqual(firstTaskDone.status, "completed");
     assert.ok(firstTaskDone.reportId);
+
+    const quotaAfterFirstReport = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
+    assert.strictEqual(quotaAfterFirstReport.used, 1);
+    assert.strictEqual(quotaAfterFirstReport.remaining, 2);
 
     const firstReport = await request(baseUrl, "GET", `/api/lite/v1/reports/${firstTaskDone.reportId}`, null, headers);
     assert.ok(firstReport.report.poseTrack);
@@ -157,6 +161,12 @@ async function main() {
       "Content-Type": "video/mp4"
     });
     assert.strictEqual(uniqueUploadResult.statusCode, 200);
+    const uniqueTask = await request(baseUrl, "POST", "/api/lite/v1/analysis/tasks", {
+      videoId: uniqueVideo.videoId
+    }, headers);
+    const uniqueTaskDone = await request(baseUrl, "GET", `/api/lite/v1/analysis/tasks/${uniqueTask.taskId}`, null, headers);
+    assert.strictEqual(uniqueTaskDone.status, "completed");
+    assert.ok(uniqueTaskDone.reportId);
 
     const quotaAfter = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
     assert.strictEqual(quotaAfter.used, 2);
@@ -175,6 +185,12 @@ async function main() {
       "Content-Type": "video/mp4"
     });
     assert.strictEqual(thirdUploadResult.statusCode, 200);
+    const thirdTask = await request(baseUrl, "POST", "/api/lite/v1/analysis/tasks", {
+      videoId: thirdVideo.videoId
+    }, headers);
+    const thirdTaskDone = await request(baseUrl, "GET", `/api/lite/v1/analysis/tasks/${thirdTask.taskId}`, null, headers);
+    assert.strictEqual(thirdTaskDone.status, "completed");
+    assert.ok(thirdTaskDone.reportId);
 
     const quotaAfterThird = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
     assert.strictEqual(quotaAfterThird.used, 3);
