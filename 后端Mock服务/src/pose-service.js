@@ -1,3 +1,5 @@
+const fs = require("fs");
+
 const KEYPOINT_NAMES = [
   "nose",
   "leftShoulder",
@@ -74,15 +76,7 @@ async function detectPoseByHttp(frames, video, task, providerMode) {
       storageProvider: video.storageProvider,
       storageKey: video.storageKey
     },
-    frames: frames.map((frame) => ({
-      frameIndex: frame.frameIndex,
-      timestampMs: frame.timestampMs,
-      imagePath: frame.imagePath,
-      imageUrl: frame.imageUrl,
-      width: frame.width,
-      height: frame.height,
-      extractedBy: frame.extractedBy
-    }))
+    frames: frames.map(serializeFrameForPoseService)
   };
   const response = await postJson(`${baseUrl}/v1/pose/detect`, payload, Number(process.env.SOAI_POSE_SERVICE_TIMEOUT_MS || 30000));
   if (!response.success || !Array.isArray(response.frames)) {
@@ -96,6 +90,24 @@ async function detectPoseByHttp(frames, video, task, providerMode) {
     at: new Date().toISOString()
   });
   return normalized;
+}
+
+function serializeFrameForPoseService(frame) {
+  const payload = {
+    frameIndex: frame.frameIndex,
+    timestampMs: frame.timestampMs,
+    imagePath: frame.imagePath,
+    imageUrl: frame.imageUrl,
+    width: frame.width,
+    height: frame.height,
+    extractedBy: frame.extractedBy
+  };
+
+  if (frame.imagePath && fs.existsSync(frame.imagePath) && fs.statSync(frame.imagePath).isFile()) {
+    payload.imageBase64 = fs.readFileSync(frame.imagePath).toString("base64");
+  }
+
+  return payload;
 }
 
 function normalizePoseFrame(frame, fallbackProvider) {
