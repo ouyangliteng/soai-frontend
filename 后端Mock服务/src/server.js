@@ -25,6 +25,7 @@ const {
 const { getOperationsDashboard, getOperationsDailyReport } = require("./operations");
 const { getProductSuggestions } = require("./product-suggestions");
 const { createUploadTarget, saveUploadedVideo, getStorageFilePath } = require("./storage");
+const { renderLiteReportPdf } = require("./report-pdf");
 const {
   getAdminOverview,
   listVideos,
@@ -709,6 +710,16 @@ async function handleLiteRequest(req, res, url) {
     return send(res, 200, { report });
   }
 
+  const reportPdfMatch = path.match(/^\/reports\/([^/]+)\/pdf$/);
+  if (req.method === "GET" && reportPdfMatch) {
+    const report = db.reports.find((item) => item.id === reportPdfMatch[1] && item.studentId === identity.studentId);
+    if (!report) return sendError(res, 404, "REPORT_NOT_FOUND", "未找到报告。");
+    ensureReportPoseTrack(report);
+    ensureReportOverlayVideoUrl(report);
+    const pdf = await renderLiteReportPdf(report);
+    return sendPdf(res, pdf, `SOAI-EQ-${report.id}.pdf`);
+  }
+
   const reportFeedbackMatch = path.match(/^\/reports\/([^/]+)\/feedback$/);
   if (req.method === "POST" && reportFeedbackMatch) {
     const report = db.reports.find((item) => item.id === reportFeedbackMatch[1] && item.studentId === identity.studentId);
@@ -1107,6 +1118,18 @@ function send(res, status, payload) {
   });
   if (status === 204) return res.end();
   res.end(JSON.stringify(payload));
+}
+
+function sendPdf(res, buffer, filename) {
+  res.writeHead(200, {
+    "Content-Type": "application/pdf",
+    "Content-Disposition": `inline; filename="${encodeURIComponent(filename)}"`,
+    "Content-Length": buffer.length,
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization"
+  });
+  res.end(buffer);
 }
 
 function validateAdminAuth(req) {

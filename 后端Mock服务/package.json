@@ -8,6 +8,9 @@
     "test": "node test/api.test.js && node test/lite-api.test.js && node test/wechat-login.test.js && node test/real-pose-required.test.js && node test/persistence.test.js && node test/oss-upload-token.test.js && (cd ../PythonPose服务 && bash scripts/verify-pose-service.sh) && node test/python-pose-service.test.js && node test/yolo-provider-report.test.js",
     "verify:api": "bash deploy/verify-api.sh"
   },
+  "dependencies": {
+    "pdfkit": "^0.15.0"
+  },
   "engines": {
     "node": ">=16"
   }
