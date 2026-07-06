@@ -3,6 +3,7 @@ const path = require("path");
 const PDFDocument = require("pdfkit");
 
 const PAGE_WIDTH = 595.28;
+const PAGE_HEIGHT = 1800;
 const PAGE_MARGIN = 44;
 const CONTENT_WIDTH = PAGE_WIDTH - PAGE_MARGIN * 2;
 const ACCENT = "#22f0c8";
@@ -106,12 +107,18 @@ function drawAngleCard(doc, angle, index) {
   const colWidth = (CONTENT_WIDTH - 14) / 2;
   const col = index % 2;
   const x = PAGE_MARGIN + col * (colWidth + 14);
-  const y = doc.y;
+  const rowY = doc._soaiAngleRowY ?? doc.y;
+  const y = rowY;
   doc.save().roundedRect(x, y, colWidth, 56, 6).stroke(LINE).restore();
   doc.fillColor(MUTED).fontSize(11).text(angle.joint, x + 14, y + 12, { width: colWidth - 28 });
   doc.fillColor(angle.score < 75 ? "#d97706" : ACCENT).fontSize(22).text(`${angle.angle}°`, x + 14, y + 30, { width: 64 });
   doc.fillColor(MUTED).fontSize(11).text(angle.normal, x + 88, y + 32, { width: colWidth - 102 });
-  if (col === 1) doc.y = y + 70;
+  if (col === 0) {
+    doc._soaiAngleRowY = rowY;
+  } else {
+    delete doc._soaiAngleRowY;
+    doc.y = rowY + 70;
+  }
 }
 
 function drawList(doc, title, items, color = TEXT) {
@@ -130,16 +137,14 @@ function drawList(doc, title, items, color = TEXT) {
 }
 
 function ensureSpace(doc, neededHeight) {
-  if (doc.y + neededHeight > doc.page.height - PAGE_MARGIN) {
-    doc.addPage();
-  }
+  if (doc.y + neededHeight > doc.page.height - PAGE_MARGIN) doc.y = doc.page.height - PAGE_MARGIN;
 }
 
 function renderLiteReportPdf(report) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     const doc = new PDFDocument({
-      size: "A4",
+      size: [PAGE_WIDTH, PAGE_HEIGHT],
       margin: PAGE_MARGIN,
       info: {
         Title: "SOAI-EQ 马术姿态完整报告",
