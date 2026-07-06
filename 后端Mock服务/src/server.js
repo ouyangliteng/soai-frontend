@@ -49,6 +49,7 @@ const {
 
 const PORT = Number(process.env.PORT || 8787);
 const ALLOWED_UPLOAD_STATUS_FIELDS = ["uploadStatus", "uploadProgress", "uploadError"];
+const PROFILE_UPDATE_WHITELIST = ["name", "avatarUrl", "phone", "currentLevel", "clubName", "coachName"];
 
 function createServer() {
   return http.createServer(async (req, res) => {
@@ -506,7 +507,8 @@ async function handleLiteRequest(req, res, url) {
   }
 
   if (req.method === "POST" && path === "/student/profile") {
-    const payload = await readJson(req);
+    const rawPayload = await readJson(req);
+    const payload = pickProfilePatch(rawPayload);
     const updated = ensureStudentProfile(identity.studentId, payload);
     db.reports
       .filter((report) => report.studentId === identity.studentId)
@@ -890,14 +892,22 @@ function getLiteIdentity(req) {
   if (token.startsWith("lite_student_lite_")) {
     return { studentId: token.slice("lite_".length), token };
   }
-  const headerStudentId = req.headers["x-soai-lite-student-id"];
-  if (headerStudentId) return { studentId: String(headerStudentId), token };
   return { studentId: "", token };
 }
 
 function pickUploadStatusPatch(payload) {
   const patch = {};
   ALLOWED_UPLOAD_STATUS_FIELDS.forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(payload, key)) {
+      patch[key] = payload[key];
+    }
+  });
+  return patch;
+}
+
+function pickProfilePatch(payload) {
+  const patch = {};
+  PROFILE_UPDATE_WHITELIST.forEach((key) => {
     if (Object.prototype.hasOwnProperty.call(payload, key)) {
       patch[key] = payload[key];
     }
@@ -960,11 +970,14 @@ function getLiteInviteCodes() {
     .split(",")
     .map((code) => normalizeInviteCode(code))
     .filter(Boolean);
-  return Array.from(new Set([getInternalLiteInviteCode(), ...configuredCodes]));
+  const internalCode = getInternalLiteInviteCode();
+  return Array.from(new Set([...(internalCode ? [internalCode] : []), ...configuredCodes]));
 }
 
 function getInternalLiteInviteCode() {
-  return normalizeInviteCode(process.env.SOAI_LITE_INTERNAL_INVITE_CODE || "SOAI2026");
+  const code = process.env.SOAI_LITE_INTERNAL_INVITE_CODE;
+  if (!code) return "";
+  return normalizeInviteCode(code);
 }
 
 function isInternalLiteInviteCode(inviteCode) {

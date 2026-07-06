@@ -228,7 +228,7 @@ function getStorageFilePath(storageKey = "") {
   const filePath = path.join(STORAGE_ROOT, normalized);
   const rootPath = path.resolve(STORAGE_ROOT);
   const resolved = path.resolve(filePath);
-  if (!resolved.startsWith(rootPath)) return "";
+  if (!resolved.startsWith(rootPath + path.sep) && resolved !== rootPath) return "";
   return resolved;
 }
 
