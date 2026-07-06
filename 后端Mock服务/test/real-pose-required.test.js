@@ -8,6 +8,7 @@ process.env.SOAI_MAX_VIDEO_DURATION_SEC = "15";
 
 async function main() {
   process.env.SOAI_LITE_INVITE_CODES = "SOAI2026";
+  process.env.SOAI_WECHAT_LOGIN_ALLOW_MOCK = "true";
   const server = createServer();
   await new Promise((resolve) => server.listen(0, resolve));
   const { port } = server.address();
@@ -34,6 +35,7 @@ async function main() {
     }, headers);
 
     await requestRaw(video.uploadUrl, "POST", Buffer.from("fake-video-bytes"), {
+      ...headers,
       "Content-Type": "video/mp4"
     });
 
@@ -49,7 +51,8 @@ async function main() {
 
     const quotaAfterFailure = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
     assert.strictEqual(quotaAfterFailure.used, 0);
-    assert.strictEqual(quotaAfterFailure.remaining, 3);
+    assert.strictEqual(quotaAfterFailure.remaining, 999);
+    assert.strictEqual(quotaAfterFailure.unlimited, true);
 
     console.log("real pose required tests passed");
   } finally {

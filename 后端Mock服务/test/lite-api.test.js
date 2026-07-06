@@ -6,6 +6,7 @@ async function main() {
   process.env.SOAI_LITE_DAILY_UPLOAD_LIMIT = "3";
   process.env.SOAI_LITE_INVITE_CODES = "SOAI2026";
   process.env.SOAI_LITE_INVITE_MAX_USERS = "20";
+  process.env.SOAI_WECHAT_LOGIN_ALLOW_MOCK = "true";
   const server = createServer();
   await new Promise((resolve) => server.listen(0, resolve));
   const { port } = server.address();
@@ -96,7 +97,13 @@ async function main() {
     }, headers);
     assert.ok(firstVideo.videoId);
     assert.ok(firstVideo.uploadUrl.includes("/api/lite/v1/mock-upload/"));
+    const unauthUploadResult = await requestRaw(firstVideo.uploadUrl, "POST", Buffer.from("fake-video-bytes"), {
+      "Content-Type": "video/mp4"
+    });
+    assert.strictEqual(unauthUploadResult.statusCode, 401);
+
     const uploadResult = await requestRaw(firstVideo.uploadUrl, "POST", Buffer.from("fake-video-bytes"), {
+      ...headers,
       "Content-Type": "video/mp4"
     });
     assert.strictEqual(uploadResult.statusCode, 200);
@@ -163,6 +170,7 @@ async function main() {
     assert.strictEqual(uniqueVideo.quota.remaining, 999);
     assert.strictEqual(uniqueVideo.quota.unlimited, true);
     const uniqueUploadResult = await requestRaw(uniqueVideo.uploadUrl, "POST", Buffer.from("unique-fake-video-bytes"), {
+      ...headers,
       "Content-Type": "video/mp4"
     });
     assert.strictEqual(uniqueUploadResult.statusCode, 200);
@@ -188,6 +196,7 @@ async function main() {
     }, headers);
     assert.ok(thirdVideo.videoId);
     const thirdUploadResult = await requestRaw(thirdVideo.uploadUrl, "POST", Buffer.from("third-fake-video-bytes"), {
+      ...headers,
       "Content-Type": "video/mp4"
     });
     assert.strictEqual(thirdUploadResult.statusCode, 200);

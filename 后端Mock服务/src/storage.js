@@ -117,8 +117,14 @@ function saveUploadedVideo(video, readable) {
     readable.on("end", () => {
       const body = Buffer.concat(chunks);
       const payload = extractMultipartFile(body, readable.headers["content-type"]) || body;
-      fs.writeFileSync(video.storagePath, payload);
-      const stat = fs.statSync(video.storagePath);
+      const safePath = getStorageFilePath(video.storageKey);
+      if (!safePath) {
+        reject(new Error("非法存储路径。"));
+        return;
+      }
+      video.storagePath = safePath;
+      fs.writeFileSync(safePath, payload);
+      const stat = fs.statSync(safePath);
       video.uploadStatus = "uploaded";
       video.uploadProgress = 100;
       video.storageUrl = video.storageUrl || toStorageUrl(video.storageKey);

@@ -6,6 +6,7 @@ async function main() {
   process.env.SOAI_LITE_INVITE_CODES = "SOAI-PUBLIC-01,SOAI-PUBLIC-02";
   process.env.SOAI_LITE_INTERNAL_INVITE_CODE = "SOAI2026";
   process.env.SOAI_LITE_INVITE_MAX_USERS = "20";
+  process.env.SOAI_WECHAT_LOGIN_ALLOW_MOCK = "true";
   const server = createServer();
   await new Promise((resolve) => server.listen(0, resolve));
   const { port } = server.address();

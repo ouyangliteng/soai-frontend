@@ -75,6 +75,14 @@ async function main() {
     assert.strictEqual(mockFallback.authMode, "mock_code2session_error");
     assert.ok(mockFallback.token.startsWith("lite_student_lite_"));
 
+    process.env.NODE_ENV = "production";
+    const productionMockBlocked = await request(baseUrl, "POST", "/api/lite/v1/auth/wx-login", {
+      code: "bad-code",
+      anonymousId: "production-mock-blocked"
+    }, {}, { allowError: true });
+    assert.strictEqual(productionMockBlocked.statusCode, 401);
+    assert.strictEqual(productionMockBlocked.body.code, "WECHAT_LOGIN_FAILED");
+
     console.log("wechat login tests passed");
   } finally {
     await new Promise((resolve) => server.close(resolve));

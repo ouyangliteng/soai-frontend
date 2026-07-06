@@ -48,6 +48,7 @@ const {
 } = require("./analytics");
 
 const PORT = Number(process.env.PORT || 8787);
+const ALLOWED_UPLOAD_STATUS_FIELDS = ["uploadStatus", "uploadProgress", "uploadError"];
 
 function createServer() {
   return http.createServer(async (req, res) => {
@@ -73,6 +74,15 @@ function createServer() {
         return handleLiteRequest(req, res, url);
       }
 
+      const storageMatch = url.pathname.match(/^\/storage\/(.+)$/);
+      if ((req.method === "GET" || req.method === "HEAD") && storageMatch) {
+        return sendStorageFile(req, res, storageMatch[1]);
+      }
+
+      if (process.env.NODE_ENV === "production" && (url.pathname === "/mock-upload" || url.pathname.startsWith("/mock-upload/") || (url.pathname.startsWith("/api/") && !url.pathname.startsWith("/api/admin/")))) {
+        return sendError(res, 404, "NOT_FOUND", "接口不存在。");
+      }
+
       const mockUploadMatch = url.pathname.match(/^\/mock-upload\/([^/]+)$/);
       if (req.method === "POST" && mockUploadMatch) {
         const video = db.videos.find((item) => item.id === mockUploadMatch[1]);
@@ -80,11 +90,6 @@ function createServer() {
         await saveUploadedVideo(video, req);
         saveDb();
         return send(res, 200, { success: true, videoId: video.id, storageUrl: video.storageUrl });
-      }
-
-      const storageMatch = url.pathname.match(/^\/storage\/(.+)$/);
-      if ((req.method === "GET" || req.method === "HEAD") && storageMatch) {
-        return sendStorageFile(req, res, storageMatch[1]);
       }
 
       if (req.method === "GET" && url.pathname === "/api/student/profile") {
@@ -154,7 +159,7 @@ function createServer() {
         const video = db.videos.find((item) => item.id === uploadStatusMatch[1]);
         if (!video) return sendError(res, 404, "VIDEO_NOT_FOUND", "未找到视频记录。");
         const payload = await readJson(req);
-        Object.assign(video, payload);
+        Object.assign(video, pickUploadStatusPatch(payload));
         saveDb();
         return send(res, 200, { success: true, video });
       }
@@ -449,20 +454,6 @@ function createServer() {
 async function handleLiteRequest(req, res, url) {
   const path = url.pathname.replace(/^\/api\/lite\/v1/, "") || "/";
 
-  const mockUploadMatch = path.match(/^\/mock-upload\/([^/]+)$/);
-  if (req.method === "POST" && mockUploadMatch) {
-    const video = db.videos.find((item) => item.id === mockUploadMatch[1]);
-    if (!video) return sendError(res, 404, "VIDEO_NOT_FOUND", "未找到视频记录。");
-    await saveUploadedVideo(video, req);
-    saveDb();
-    return send(res, 200, { success: true, videoId: video.id, storageUrl: video.storageUrl });
-  }
-
-  const storageMatch = path.match(/^\/storage\/(.+)$/);
-  if ((req.method === "GET" || req.method === "HEAD") && storageMatch) {
-    return sendStorageFile(req, res, storageMatch[1]);
-  }
-
   if (req.method === "POST" && path === "/auth/wx-login") {
     const payload = await readJson(req);
     const loginResult = await resolveLiteWechatLogin(payload);
@@ -495,6 +486,20 @@ async function handleLiteRequest(req, res, url) {
     return sendError(res, 401, "LITE_UNAUTHORIZED", "请先登录后再使用学员端。");
   }
   const profile = ensureStudentProfile(identity.studentId);
+
+  const mockUploadMatch = path.match(/^\/mock-upload\/([^/]+)$/);
+  if (req.method === "POST" && mockUploadMatch) {
+    const video = db.videos.find((item) => item.id === mockUploadMatch[1] && item.studentId === identity.studentId);
+    if (!video) return sendError(res, 404, "VIDEO_NOT_FOUND", "未找到视频记录。");
+    await saveUploadedVideo(video, req);
+    saveDb();
+    return send(res, 200, { success: true, videoId: video.id, storageUrl: video.storageUrl });
+  }
+
+  const storageMatch = path.match(/^\/storage\/(.+)$/);
+  if ((req.method === "GET" || req.method === "HEAD") && storageMatch) {
+    return sendStorageFile(req, res, storageMatch[1]);
+  }
 
   if (req.method === "GET" && path === "/student/profile") {
     return send(res, 200, { profile });
@@ -619,7 +624,7 @@ async function handleLiteRequest(req, res, url) {
     const video = db.videos.find((item) => item.id === uploadStatusMatch[1] && item.studentId === identity.studentId);
     if (!video) return sendError(res, 404, "VIDEO_NOT_FOUND", "未找到视频记录。");
     const payload = await readJson(req);
-    Object.assign(video, payload);
+    Object.assign(video, pickUploadStatusPatch(payload));
     saveDb();
     return send(res, 200, { success: true, video });
   }
@@ -823,7 +828,7 @@ function getWechatLoginConfig() {
 }
 
 function allowMockWechatLogin() {
-  return process.env.SOAI_WECHAT_LOGIN_ALLOW_MOCK === "true" || process.env.NODE_ENV !== "production";
+  return process.env.NODE_ENV !== "production" && process.env.SOAI_WECHAT_LOGIN_ALLOW_MOCK === "true";
 }
 
 function buildMockWechatLogin(payload, code, loginMode) {
@@ -875,13 +880,29 @@ function requestWechatCode2Session(config, code) {
 
 function getLiteIdentity(req) {
   const auth = req.headers.authorization || "";
-  const token = auth.replace(/^Bearer\s+/i, "").trim();
+  const headerToken = auth.replace(/^Bearer\s+/i, "").trim();
+  let queryToken = "";
+  try {
+    const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+    queryToken = String(url.searchParams.get("soai_token") || "").trim();
+  } catch {}
+  const token = headerToken || queryToken;
   if (token.startsWith("lite_student_lite_")) {
     return { studentId: token.slice("lite_".length), token };
   }
   const headerStudentId = req.headers["x-soai-lite-student-id"];
   if (headerStudentId) return { studentId: String(headerStudentId), token };
   return { studentId: "", token };
+}
+
+function pickUploadStatusPatch(payload) {
+  const patch = {};
+  ALLOWED_UPLOAD_STATUS_FIELDS.forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(payload, key)) {
+      patch[key] = payload[key];
+    }
+  });
+  return patch;
 }
 
 function getDailyUploadQuota(studentId) {
@@ -1133,8 +1154,13 @@ function sendPdf(res, buffer, filename) {
 }
 
 function validateAdminAuth(req) {
-  const expected = process.env.SOAI_ADMIN_TOKEN || "soai-admin-dev";
-  if (!expected) return null;
+  const expected = process.env.SOAI_ADMIN_TOKEN || "";
+  if (!expected || isWeakAdminToken(expected)) {
+    return {
+      code: "ADMIN_AUTH_NOT_CONFIGURED",
+      message: "管理员认证未配置。"
+    };
+  }
   const auth = req.headers.authorization || "";
   const token = auth.replace(/^Bearer\s+/i, "").trim();
   if (token === expected) return null;
@@ -1144,7 +1170,18 @@ function validateAdminAuth(req) {
   };
 }
 
+function isWeakAdminToken(value) {
+  return ["soai-admin-dev", "replace-with-strong-admin-token"].includes(String(value || "").trim());
+}
+
 function sendStorageFile(req, res, storageKey) {
+  const identity = getLiteIdentity(req);
+  if (!identity.studentId) {
+    return sendError(res, 401, "LITE_UNAUTHORIZED", "请先登录后再访问文件。");
+  }
+  if (!canAccessStorageKey(identity.studentId, storageKey)) {
+    return sendError(res, 403, "STORAGE_FORBIDDEN", "无权访问该文件。");
+  }
   const filePath = getStorageFilePath(storageKey);
   const fs = require("fs");
   if (!filePath || !fs.existsSync(filePath)) {
@@ -1178,6 +1215,39 @@ function sendStorageFile(req, res, storageKey) {
   });
   if (req.method === "HEAD") return res.end();
   fs.createReadStream(filePath).pipe(res);
+}
+
+function canAccessStorageKey(studentId, storageKey = "") {
+  const normalized = storageKey.replace(/^\/+/, "");
+  return db.videos.some((video) => {
+    if (video.studentId !== studentId) return false;
+    const keys = [
+      video.storageKey,
+      video.originalStorageKey,
+      video.poseOverlayStorageKey
+    ].filter(Boolean);
+    if (keys.includes(normalized)) return true;
+    const urls = [
+      video.storageUrl,
+      video.originalStorageUrl,
+      video.poseOverlayVideoUrl,
+      video.poseOverlayVideoPath
+    ].filter(Boolean);
+    return urls.some((url) => String(url).replace(/^local:\/\/soai\//, "").endsWith(`/${normalized}`) || String(url).replace(/^local:\/\/soai\//, "") === normalized);
+  }) || db.reports.some((report) => {
+    if (report.studentId !== studentId) return false;
+    const keys = [
+      report.poseOverlayStorageKey
+    ].filter(Boolean);
+    if (keys.includes(normalized)) return true;
+    const urls = [
+      report.videoStorageUrl,
+      report.videoPath,
+      report.poseOverlayVideoUrl,
+      report.poseOverlayVideoPath
+    ].filter(Boolean);
+    return urls.some((url) => String(url).replace(/^local:\/\/soai\//, "").endsWith(`/${normalized}`) || String(url).replace(/^local:\/\/soai\//, "") === normalized);
+  });
 }
 
 if (require.main === module) {
