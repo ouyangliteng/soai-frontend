@@ -19,7 +19,13 @@
 - DB 文件：`/data/soai-storage/db/soai-db.json`
 - 姿态服务容器：`soai-pose-service`
 - 姿态服务端口：`127.0.0.1:8793`
-- 服务器备份：`/root/soai-lite-backups/soai-lite-runtime-20260706-120931`
+- 服务器备份：`/root/soai-lite-backups/soai-lite-runtime-20260706-143029`
+
+## 当前 Git 版本
+
+- 小程序前端 `SOAI-Lite`：`22d38e9cf137605c497a53e83efae2de4f81de43`
+- 后端 / 姿态服务 `soai-frontend`：`81ed605c7b1da1851c661fb5a630b161768615af`
+- 当前可运行标签：`soai-lite-runnable-20260706-latest`
 
 ## 当前已打通功能
 
@@ -35,7 +41,8 @@
 - 单侧腿部姿态点
 - 同一用户同一视频复用旧报告，不重复分析
 - 报告页播放带彩色姿态点的视频
-- 保存完整报告长图到手机相册
+- 报告导出只保留完整 PDF
+- 报告 PDF 为单页长报告，可在小程序内预览或转发给好友 / 文件传输助手
 
 ## 重要规则
 
@@ -45,6 +52,7 @@
 - 真实姿态识别不允许回退到合成轨迹：`SOAI_REQUIRE_REAL_POSE=true`。
 - 姿态服务地址为 `http://127.0.0.1:8793`。
 - 报告视频优先使用 `poseOverlayVideoUrl`。
+- 报告导出不再生成相册长图，统一使用 `/api/lite/v1/reports/:id/pdf`。
 
 ## 常用命令
 
@@ -84,4 +92,3 @@ node test/invite-code.test.js
 node test/wechat-login.test.js
 node test/yolo-provider-report.test.js
 ```
-

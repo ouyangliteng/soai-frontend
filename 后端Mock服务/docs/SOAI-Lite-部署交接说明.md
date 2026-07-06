@@ -6,10 +6,13 @@
 
 - 小程序前端仓库：`SOAI-Lite`
 - 后端 / 姿态服务仓库：`soai-frontend` 内的 `后端Mock服务` 与 `PythonPose服务`
+- 小程序前端 commit：`22d38e9cf137605c497a53e83efae2de4f81de43`
+- 后端 / 姿态服务 commit：`81ed605c7b1da1851c661fb5a630b161768615af`
+- 当前可运行标签：`soai-lite-runnable-20260706-latest`
 - 线上 API 域名：`https://api.soai.yun`
 - API 进程：`soai-lite-api`
 - 姿态服务容器：`soai-pose-service`
-- 本次服务器备份：`/root/soai-lite-backups/soai-lite-runtime-20260706-120931`
+- 本次服务器备份：`/root/soai-lite-backups/soai-lite-runtime-20260706-143029`
 
 ## 服务器路径
 
@@ -119,7 +122,8 @@ POST /api/lite/v1/auth/wx-login
 10. 生成姿态轨迹、规则评分、报告文本
 11. 生成彩色姿态叠加视频：`src/pose-overlay-video.js`
 12. 前端报告页播放 `poseOverlayVideoUrl`
-13. 保存报告到相册时，前端生成完整报告长图并保存
+13. 前端报告页通过 `GET /api/lite/v1/reports/:id/pdf` 导出完整 PDF
+14. PDF 为单页长报告，前端提供“预览完整 PDF”和“转发 PDF 给好友”
 
 ## 关键行为规则
 
@@ -131,6 +135,8 @@ POST /api/lite/v1/auth/wx-login
 - 同一用户上传同一视频时不重复分析，复用原报告并提示用户查看原报告。
 - 报告页优先播放后端生成的彩色姿态叠加视频。
 - 若旧报告没有叠加视频，前端兜底显示分色关节点。
+- 报告导出只保留 PDF，不再保留相册长图入口。
+- 微信 `openDocument` 预览页不保证显示保存/转发按钮；前端通过 `shareFileMessage` 提供 PDF 转发入口。
 
 ## 常见故障排查
 
@@ -218,13 +224,13 @@ INVITE_CODE_USED
 1. 解压 API：
 
 ```bash
-tar -C /www/wwwroot -xzf /root/soai-lite-backups/soai-lite-runtime-20260706-120931/soai-lite-api.tar.gz
+tar -C /www/wwwroot -xzf /root/soai-lite-backups/soai-lite-runtime-20260706-143029/soai-lite-api.tar.gz
 ```
 
 2. 解压数据：
 
 ```bash
-tar -C /data -xzf /root/soai-lite-backups/soai-lite-runtime-20260706-120931/soai-storage.tar.gz
+tar -C /data -xzf /root/soai-lite-backups/soai-lite-runtime-20260706-143029/soai-storage.tar.gz
 ```
 
 3. 启动姿态服务：
@@ -248,4 +254,3 @@ pm2 save
 curl -s https://api.soai.yun/api/lite/v1/health
 curl -s http://127.0.0.1:8793/health
 ```
-
