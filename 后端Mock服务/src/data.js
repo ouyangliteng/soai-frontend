@@ -12,6 +12,12 @@ const DB_FILE = process.env.SOAI_DB_FILE || path.join(STORAGE_ROOT, "db", "soai-
 const PERSISTENCE_ENABLED = process.env.SOAI_PERSISTENCE_DISABLED !== "1" && (
   process.env.NODE_ENV === "production" || Boolean(process.env.SOAI_DB_FILE)
 );
+let idCounter = 0;
+
+function uniqueId(prefix) {
+  idCounter = (idCounter + 1) % 1000000;
+  return `${prefix}_${Date.now()}_${idCounter}`;
+}
 
 const profile = {
   id: "student_001",
@@ -190,6 +196,7 @@ function ensureStudentProfile(studentId, patch = {}) {
   if (!db.profiles[studentId]) {
     db.profiles[studentId] = {
       ...profile,
+      ...patch,
       id: studentId,
       userId: patch.userId || `wx_${studentId}`,
       name: patch.name || "内测会员",
@@ -297,7 +304,7 @@ function createReportFromTask(task) {
     throw new Error(`AI 报告校验失败：${validation.issues.join("；")}`);
   }
   const report = {
-    id: `report_${Date.now()}`,
+    id: uniqueId("report"),
     studentId: reportProfile.id,
     videoId: task.videoId,
     taskId: task.id,
@@ -343,7 +350,7 @@ function createReportFromAnalysis({ task, video, aiReport, poseSummary, frames, 
   const trainingDate = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
   const videoAvailableUntil = getNextDayIso(reportCreatedAt);
   const report = {
-    id: `report_${Date.now()}`,
+    id: uniqueId("report"),
     studentId: reportProfile.id,
     videoId: task.videoId,
     taskId: task.id,
@@ -442,6 +449,8 @@ function buildPoseTrack(frames = [], poseFrames = []) {
       rightShoulder: "右肩",
       leftElbow: "左肘",
       rightElbow: "右肘",
+      leftWrist: "左手",
+      rightWrist: "右手",
       waist: "腰部",
       leftKnee: "左腿",
       rightKnee: "右腿",
@@ -462,6 +471,8 @@ function buildTrackPoints(keypoints, width, height) {
     "rightShoulder",
     "leftElbow",
     "rightElbow",
+    "leftWrist",
+    "rightWrist",
     "leftKnee",
     "rightKnee"
   ].forEach((name) => addTrackPoint(points, name, keypoints[name], width, height));
@@ -579,5 +590,7 @@ module.exports = {
   createReportFromTask,
   createReportFromAnalysis,
   ensureReportPoseTrack,
-  saveDb
+  buildPoseTrack,
+  saveDb,
+  uniqueId
 };

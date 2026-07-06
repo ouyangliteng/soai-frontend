@@ -45,6 +45,7 @@ async function main() {
     assert.strictEqual(task.status, "failed");
     assert.strictEqual(task.errorCode, "ANALYSIS_PIPELINE_FAILED");
     assert.ok(task.errorMessage.includes("真实姿态识别"));
+    assert.ok(task.errorMessage.includes("ffmpeg"), task.errorMessage);
 
     const quotaAfterFailure = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
     assert.strictEqual(quotaAfterFailure.used, 0);

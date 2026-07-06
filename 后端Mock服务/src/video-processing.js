@@ -7,7 +7,7 @@ const DEFAULT_FPS = Number(process.env.SOAI_FRAME_FPS || 1);
 function extractFrames(video, task) {
   const maxDurationSec = Number(process.env.SOAI_MAX_VIDEO_DURATION_SEC || 15);
   const durationSec = clamp(Number(video.durationSec || maxDurationSec), 1, maxDurationSec);
-  const fps = clamp(DEFAULT_FPS, 1, 2);
+  const fps = clamp(DEFAULT_FPS, 0.2, 6);
   const targetFrameCount = Math.max(1, Math.round(durationSec * fps));
   const requireRealPose = process.env.SOAI_REQUIRE_REAL_POSE === "true";
 

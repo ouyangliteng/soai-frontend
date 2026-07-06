@@ -61,6 +61,8 @@ async function main() {
     }, headers);
     assert.strictEqual(invite.success, true);
     assert.strictEqual(invite.inviteAccess.verified, true);
+    const unlimitedQuota = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
+    assert.strictEqual(unlimitedQuota.unlimited, true);
 
     const tooLongVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
       fileName: "too-long-training.mp4",
@@ -82,7 +84,7 @@ async function main() {
       caseConsent: false
     }, headers);
     assert.ok(shortVideo.videoId);
-    assert.strictEqual(shortVideo.quota.remaining, 3);
+    assert.strictEqual(shortVideo.quota.unlimited, true);
 
     const firstVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
       fileName: "repeat-training.mp4",
@@ -101,7 +103,8 @@ async function main() {
 
     const quotaAfterUpload = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
     assert.strictEqual(quotaAfterUpload.used, 0);
-    assert.strictEqual(quotaAfterUpload.remaining, 3);
+    assert.strictEqual(quotaAfterUpload.remaining, 999);
+    assert.strictEqual(quotaAfterUpload.unlimited, true);
 
     const firstTask = await request(baseUrl, "POST", "/api/lite/v1/analysis/tasks", {
       videoId: firstVideo.videoId
@@ -111,8 +114,9 @@ async function main() {
     assert.ok(firstTaskDone.reportId);
 
     const quotaAfterFirstReport = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
-    assert.strictEqual(quotaAfterFirstReport.used, 1);
-    assert.strictEqual(quotaAfterFirstReport.remaining, 2);
+    assert.strictEqual(quotaAfterFirstReport.used, 0);
+    assert.strictEqual(quotaAfterFirstReport.remaining, 999);
+    assert.strictEqual(quotaAfterFirstReport.unlimited, true);
 
     const firstReport = await request(baseUrl, "GET", `/api/lite/v1/reports/${firstTaskDone.reportId}`, null, headers);
     assert.ok(firstReport.report.poseTrack);
@@ -156,7 +160,8 @@ async function main() {
       caseConsent: false
     }, headers);
     assert.ok(uniqueVideo.videoId);
-    assert.strictEqual(uniqueVideo.quota.remaining, 2);
+    assert.strictEqual(uniqueVideo.quota.remaining, 999);
+    assert.strictEqual(uniqueVideo.quota.unlimited, true);
     const uniqueUploadResult = await requestRaw(uniqueVideo.uploadUrl, "POST", Buffer.from("unique-fake-video-bytes"), {
       "Content-Type": "video/mp4"
     });
@@ -169,8 +174,9 @@ async function main() {
     assert.ok(uniqueTaskDone.reportId);
 
     const quotaAfter = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
-    assert.strictEqual(quotaAfter.used, 2);
-    assert.strictEqual(quotaAfter.remaining, 1);
+    assert.strictEqual(quotaAfter.used, 0);
+    assert.strictEqual(quotaAfter.remaining, 999);
+    assert.strictEqual(quotaAfter.unlimited, true);
 
     const thirdVideo = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
       fileName: "training-third.mp4",
@@ -193,8 +199,9 @@ async function main() {
     assert.ok(thirdTaskDone.reportId);
 
     const quotaAfterThird = await request(baseUrl, "GET", "/api/lite/v1/upload/quota", null, headers);
-    assert.strictEqual(quotaAfterThird.used, 3);
-    assert.strictEqual(quotaAfterThird.remaining, 0);
+    assert.strictEqual(quotaAfterThird.used, 0);
+    assert.strictEqual(quotaAfterThird.remaining, 999);
+    assert.strictEqual(quotaAfterThird.unlimited, true);
 
     const overLimit = await request(baseUrl, "POST", "/api/lite/v1/videos/upload-token", {
       fileName: "training-over-limit.mp4",
@@ -203,9 +210,9 @@ async function main() {
       format: "mp4",
       analysisConsent: true,
       caseConsent: false
-    }, headers, { allowError: true });
-    assert.strictEqual(overLimit.statusCode, 429);
-    assert.strictEqual(overLimit.body.code, "DAILY_UPLOAD_LIMIT_REACHED");
+    }, headers);
+    assert.ok(overLimit.videoId);
+    assert.strictEqual(overLimit.quota.unlimited, true);
 
     console.log("lite api tests passed");
   } finally {

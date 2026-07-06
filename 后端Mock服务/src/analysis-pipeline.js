@@ -1,6 +1,7 @@
 const { extractFrames } = require("./video-processing");
 const { detectPose } = require("./pose-service");
 const { applyEquestrianRules } = require("./equestrian-rules");
+const { renderPoseOverlayVideo } = require("./pose-overlay-video");
 const {
   buildReportInput,
   generateTrainingReport,
@@ -53,7 +54,10 @@ async function runAnalysisPipeline({ db, task, video, createReport }) {
       poseFrames,
       ruleResults
     });
+    attachPoseOverlayVideo({ report, video, task });
     task.reportId = report.id;
+    task.errorCode = "";
+    task.errorMessage = "";
     task.status = "waiting_coach_review";
     task.progress = 96;
     task.progressText = "报告已生成，等待教练复核";
@@ -80,6 +84,22 @@ async function runAnalysisPipeline({ db, task, video, createReport }) {
   }
 }
 
+function attachPoseOverlayVideo({ report, video, task }) {
+  const overlayVideo = renderPoseOverlayVideo(video, report.poseTrack);
+  if (!overlayVideo) return;
+  report.poseOverlayVideoUrl = overlayVideo.storageUrl;
+  report.poseOverlayVideoPath = overlayVideo.storageUrl;
+  report.poseOverlayStorageKey = overlayVideo.storageKey;
+  video.poseOverlayVideoUrl = overlayVideo.storageUrl;
+  video.poseOverlayStorageKey = overlayVideo.storageKey;
+  task.logs.push({
+    stage: "pose_overlay_video",
+    level: "info",
+    message: "已生成带姿态关节点的视频回放",
+    at: new Date().toISOString()
+  });
+}
+
 function assertRealPoseIfRequired(poseFrames) {
   if (process.env.SOAI_REQUIRE_REAL_POSE !== "true") return;
   const provider = poseFrames && poseFrames[0] ? poseFrames[0].provider : "";
@@ -93,7 +113,7 @@ function formatAnalysisError(error) {
   if (/timeout|timed out|超时/i.test(message)) {
     return "真实姿态识别超时，请稍后重试。";
   }
-  if (/ECONNREFUSED|fetch failed|Python Pose Service|姿态模型|YOLO|provider/i.test(message)) {
+  if (/ECONNREFUSED|fetch failed|Python Pose Service|姿态模型|YOLO|provider|ffmpeg|抽帧|上传视频文件|视频可播放/i.test(message)) {
     return message;
   }
   return "真实姿态识别失败，请稍后重试。";

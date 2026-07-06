@@ -66,6 +66,16 @@ https://api.soai.yun
 Node.js >= 16
 ```
 
+生产环境必须配置的小程序登录变量：
+
+```text
+WECHAT_MINI_APP_ID=小程序 AppID
+WECHAT_MINI_APP_SECRET=小程序 AppSecret
+SOAI_WECHAT_LOGIN_ALLOW_MOCK=false
+```
+
+说明：`WECHAT_MINI_APP_SECRET` 只能放在后端服务器环境变量中，不能写入小程序前端代码或提交到公开仓库。
+
 ## 3. 测试
 
 ```bash
@@ -76,6 +86,7 @@ npm test
 测试会完整跑通：
 
 - 获取学员资料
+- 微信小程序 `code2Session` 登录换取 openid
 - 保存学员资料
 - 创建视频上传凭证
 - 更新上传状态
@@ -98,6 +109,21 @@ npm test
 
 ### 学员端
 
+- `POST /api/lite/v1/auth/wx-login`
+- `GET /api/lite/v1/student/profile`
+- `POST /api/lite/v1/student/profile`
+- `POST /api/lite/v1/invite/verify`
+- `GET /api/lite/v1/upload/quota`
+- `POST /api/lite/v1/videos/upload-token`
+- `POST /api/lite/v1/videos/{videoId}/upload-status`
+- `POST /api/lite/v1/analysis/tasks`
+- `GET /api/lite/v1/analysis/tasks/{taskId}`
+- `GET /api/lite/v1/reports`
+- `GET /api/lite/v1/reports/{reportId}`
+- `POST /api/lite/v1/reports/{reportId}/feedback`
+
+旧版演示接口仍保留：
+
 - `GET /api/student/profile`
 - `POST /api/student/profile`
 - `POST /api/videos/upload-token`
@@ -112,6 +138,7 @@ npm test
 
 说明：
 
+- `POST /api/lite/v1/auth/wx-login` 会用前端 `wx.login()` 传来的 `code` 调微信 `code2Session`，后端只保存 openid/unionid 的哈希，不向前端返回 `session_key`。
 - `POST /api/videos/upload-token` 必须传入 `analysisConsent: true`。
 - `caseConsent` 仅表示匿名案例候选授权，公开发布前仍需二次确认。
 
@@ -201,5 +228,6 @@ utils/api.js
 - 分析任务已经拆成抽帧、姿态识别、马术规则、报告生成阶段；未安装 ffmpeg 时会回退为带时间戳的帧元数据。
 - 姿态识别支持 `SOAI_POSE_PROVIDER=synthetic` 本地模拟、`http` 调用独立 Python Pose Service、`auto` 失败回退。真实 YOLO-Pose/RTMPose 模型配置见 `../PythonPose服务/README.md`。
 - AI 报告基于结构化姿态和规则结果生成，当前不调用外部大模型；可在报告生成层接入 OpenAI 或国内可商用大模型做文本组织。
-- 没有登录、鉴权和多教练权限。
+- 学员端已接入微信 `code2Session` 登录；本地开发或测试环境未配置微信密钥时，会使用匿名内测登录兜底。生产环境应配置 `WECHAT_MINI_APP_ID`、`WECHAT_MINI_APP_SECRET` 并保持 `SOAI_WECHAT_LOGIN_ALLOW_MOCK=false`。
+- 多教练细粒度权限仍未完成。
 - 后台 MVP 目前使用 Bearer Token 鉴权，生产环境必须设置 `SOAI_ADMIN_TOKEN`，后续再升级为管理员账号、角色权限和操作审计。

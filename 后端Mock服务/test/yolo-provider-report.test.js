@@ -87,6 +87,8 @@ async function main() {
     const task = await request(baseUrl, "GET", `/api/analysis/tasks/${taskCreated.taskId}`);
     const taskRecord = db.tasks.find((item) => item.id === taskCreated.taskId);
     assert.strictEqual(task.status, "completed", JSON.stringify({ task, logs: taskRecord && taskRecord.logs }));
+    assert.strictEqual(task.errorCode, "");
+    assert.strictEqual(task.errorMessage, "");
     assert.ok(task.reportId);
 
     const reportRes = await request(baseUrl, "GET", `/api/reports/${task.reportId}`);

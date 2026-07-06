@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { spawnSync } = require("child_process");
 
 const STORAGE_ROOT = process.env.SOAI_STORAGE_ROOT || path.join(__dirname, "..", "storage");
 const OSS_EXPIRES_SEC = Number(process.env.ALIYUN_OSS_UPLOAD_EXPIRES_SEC || 900);
@@ -121,11 +122,74 @@ function saveUploadedVideo(video, readable) {
       video.uploadStatus = "uploaded";
       video.uploadProgress = 100;
       video.storageUrl = video.storageUrl || toStorageUrl(video.storageKey);
+      ensurePlayableLocalVideo(video);
       video.actualSizeMb = Number((stat.size / 1024 / 1024).toFixed(2));
       video.uploadedAt = new Date().toISOString();
       resolve(video);
     });
   });
+}
+
+function ensurePlayableLocalVideo(video) {
+  if (video.storageProvider !== "local") return;
+  if (!video.storagePath || !fs.existsSync(video.storagePath)) return;
+  const codec = getVideoCodec(video.storagePath);
+  if (!codec || codec === "h264") return;
+
+  const parsed = path.parse(video.storageKey || "");
+  const playbackKey = path.join(parsed.dir, `${parsed.name}_playback.mp4`).replace(/\\/g, "/");
+  const playbackPath = path.join(STORAGE_ROOT, playbackKey);
+  const result = spawnSync("ffmpeg", [
+    "-y",
+    "-i",
+    video.storagePath,
+    "-map",
+    "0:v:0",
+    "-map",
+    "0:a?",
+    "-c:v",
+    "libx264",
+    "-preset",
+    "veryfast",
+    "-profile:v",
+    "main",
+    "-pix_fmt",
+    "yuv420p",
+    "-movflags",
+    "+faststart",
+    "-c:a",
+    "aac",
+    "-b:a",
+    "128k",
+    playbackPath
+  ], { encoding: "utf8" });
+
+  if (result.status !== 0 || !fs.existsSync(playbackPath)) return;
+  video.originalStorageKey = video.originalStorageKey || video.storageKey;
+  video.originalStoragePath = video.originalStoragePath || video.storagePath;
+  video.originalStorageUrl = video.originalStorageUrl || video.storageUrl;
+  video.originalVideoCodec = codec;
+  video.storageKey = playbackKey;
+  video.storagePath = playbackPath;
+  video.storageUrl = toStorageUrl(playbackKey);
+  video.playbackCodec = "h264";
+  video.playbackGeneratedAt = new Date().toISOString();
+}
+
+function getVideoCodec(filePath) {
+  const result = spawnSync("ffprobe", [
+    "-v",
+    "error",
+    "-select_streams",
+    "v:0",
+    "-show_entries",
+    "stream=codec_name",
+    "-of",
+    "default=nw=1:nk=1",
+    filePath
+  ], { encoding: "utf8" });
+  if (result.status !== 0) return "";
+  return String(result.stdout || "").trim().toLowerCase();
 }
 
 function extractMultipartFile(body, contentType = "") {

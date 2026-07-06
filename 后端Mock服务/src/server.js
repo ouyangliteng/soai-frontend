@@ -82,7 +82,7 @@ function createServer() {
       }
 
       const storageMatch = url.pathname.match(/^\/storage\/(.+)$/);
-      if (req.method === "GET" && storageMatch) {
+      if ((req.method === "GET" || req.method === "HEAD") && storageMatch) {
         return sendStorageFile(req, res, storageMatch[1]);
       }
 
@@ -458,7 +458,7 @@ async function handleLiteRequest(req, res, url) {
   }
 
   const storageMatch = path.match(/^\/storage\/(.+)$/);
-  if (req.method === "GET" && storageMatch) {
+  if ((req.method === "GET" || req.method === "HEAD") && storageMatch) {
     return sendStorageFile(req, res, storageMatch[1]);
   }
 
@@ -705,6 +705,7 @@ async function handleLiteRequest(req, res, url) {
     const report = db.reports.find((item) => item.id === reportMatch[1] && item.studentId === identity.studentId);
     if (!report) return sendError(res, 404, "REPORT_NOT_FOUND", "未找到报告。");
     ensureReportPoseTrack(report);
+    ensureReportOverlayVideoUrl(report);
     return send(res, 200, { report });
   }
 
@@ -762,6 +763,9 @@ async function resolveLiteWechatLogin(payload) {
   try {
     const session = await requestWechatCode2Session(config, code);
     if (session.errcode) {
+      if (process.env.SOAI_WECHAT_LOGIN_ALLOW_MOCK_ON_ERROR === "true" && allowMockWechatLogin()) {
+        return buildMockWechatLogin(payload, code, "mock_code2session_error");
+      }
       return {
         error: {
           status: 401,
@@ -870,6 +874,16 @@ function getLiteIdentity(req) {
 }
 
 function getDailyUploadQuota(studentId) {
+  if (hasUnlimitedLiteUpload(studentId)) {
+    const dateKey = chinaDateKey(new Date());
+    return {
+      limit: 0,
+      used: 0,
+      remaining: 999,
+      unlimited: true,
+      date: dateKey
+    };
+  }
   const limit = Number(process.env.SOAI_LITE_DAILY_UPLOAD_LIMIT || 3);
   const dateKey = chinaDateKey(new Date());
   const completedReportKeys = new Set();
@@ -889,13 +903,40 @@ function getDailyUploadQuota(studentId) {
   };
 }
 
+function hasUnlimitedLiteUpload(studentId) {
+  const profile = Object.values(db.profiles || {}).find((item) => item && item.id === studentId);
+  if (!profile || !profile.inviteVerifiedAt) return false;
+  return profile.inviteCodeHash === shortHash(getInternalLiteInviteCode());
+}
+
+function ensureReportOverlayVideoUrl(report) {
+  if (!report) return report;
+  const video = db.videos.find((item) => item.id === report.videoId);
+  const overlayUrl = report.poseOverlayVideoUrl || report.poseOverlayVideoPath || (video && video.poseOverlayVideoUrl) || "";
+  const overlayKey = report.poseOverlayStorageKey || (video && video.poseOverlayStorageKey) || "";
+  const resolvedUrl = overlayUrl || (overlayKey ? `${process.env.SOAI_STORAGE_PUBLIC_BASE_URL || "local://soai"}/${overlayKey}` : "");
+  if (resolvedUrl) {
+    report.poseOverlayVideoUrl = resolvedUrl;
+    report.poseOverlayVideoPath = resolvedUrl;
+  }
+  return report;
+}
+
 function getLiteInviteCodes() {
-  const configured = process.env.SOAI_LITE_INVITE_CODES || "SOAI2026";
+  const configured = process.env.SOAI_LITE_INVITE_CODES || "";
   const configuredCodes = configured
     .split(",")
     .map((code) => normalizeInviteCode(code))
     .filter(Boolean);
-  return Array.from(new Set(["SOAI2026", ...configuredCodes]));
+  return Array.from(new Set([getInternalLiteInviteCode(), ...configuredCodes]));
+}
+
+function getInternalLiteInviteCode() {
+  return normalizeInviteCode(process.env.SOAI_LITE_INTERNAL_INVITE_CODE || "SOAI2026");
+}
+
+function isInternalLiteInviteCode(inviteCode) {
+  return normalizeInviteCode(inviteCode) === getInternalLiteInviteCode();
 }
 
 function normalizeInviteCode(value) {
@@ -909,12 +950,23 @@ function getInviteAccess(profile) {
     verified,
     verifiedAt: profile.inviteVerifiedAt || "",
     maxUsers: Number(process.env.SOAI_LITE_INVITE_MAX_USERS || 20),
-    acceptedUsers: countInviteAcceptedUsers()
+    acceptedUsers: countPublicInviteAcceptedUsers()
   };
 }
 
-function countInviteAcceptedUsers() {
-  return Object.values(db.profiles || {}).filter((item) => item && item.inviteVerifiedAt).length;
+function countPublicInviteAcceptedUsers() {
+  const internalHash = shortHash(getInternalLiteInviteCode());
+  return Object.values(db.profiles || {}).filter((item) => (
+    item &&
+    item.inviteVerifiedAt &&
+    item.inviteCodeHash &&
+    item.inviteCodeHash !== internalHash
+  )).length;
+}
+
+function findProfileByInviteCode(inviteCode) {
+  const inviteCodeHash = shortHash(inviteCode);
+  return Object.values(db.profiles || {}).find((item) => item && item.inviteCodeHash === inviteCodeHash) || null;
 }
 
 function verifyLiteInviteCode(profile, rawCode) {
@@ -931,6 +983,10 @@ function verifyLiteInviteCode(profile, rawCode) {
   }
   if (!codes.includes(inviteCode)) {
     return { ok: false, status: 403, code: "INVITE_CODE_INVALID", message: "邀请码不正确，请向 SOAI 内测负责人确认。" };
+  }
+  const matchedProfile = findProfileByInviteCode(inviteCode);
+  if (!isInternalLiteInviteCode(inviteCode) && matchedProfile && matchedProfile.id !== profile.id) {
+    return { ok: false, status: 403, code: "INVITE_CODE_USED", message: "该邀请码已绑定其他微信用户，请使用新的邀请码。" };
   }
   profile.inviteVerifiedAt = profile.inviteVerifiedAt || nowIso();
   profile.inviteStatus = "verified";
@@ -1088,6 +1144,7 @@ function sendStorageFile(req, res, storageKey) {
       "Accept-Ranges": "bytes",
       "Cache-Control": "private, max-age=3600"
     });
+    if (req.method === "HEAD") return res.end();
     return fs.createReadStream(filePath, { start: safeStart, end: safeEnd }).pipe(res);
   }
   res.writeHead(200, {
@@ -1096,6 +1153,7 @@ function sendStorageFile(req, res, storageKey) {
     "Accept-Ranges": "bytes",
     "Cache-Control": "private, max-age=3600"
   });
+  if (req.method === "HEAD") return res.end();
   fs.createReadStream(filePath).pipe(res);
 }
 
